@@ -1,0 +1,1011 @@
+# HRIS + Task Management — Database Schema
+**Single source of truth. All modules share the same database.**
+Last updated: Mar 2026
+
+---
+
+## Design Principles
+
+- `employees` is the central table — every other table references it
+- Soft deletes everywhere (`deleted_at`) — nothing is ever hard deleted
+- All timestamps in UTC
+- Monetary values stored as integers (centavos) to avoid float precision issues
+- Enums defined per table, not globally, for migration flexibility
+- Task Management and HRIS share `employees`, `departments`, and `users` — no duplication
+
+---
+
+## Table of Contents
+
+1. [Core — Users & Employees](#1-core)
+2. [Payroll](#2-payroll)
+3. [Time & Attendance](#3-time--attendance)
+4. [Leave](#4-leave)
+5. [Offset](#5-offset)
+6. [Recruitment](#6-recruitment)
+7. [Task Management](#7-task-management)
+8. [Shared / Cross-cutting](#8-shared)
+9. [Relationship Map](#9-relationship-map)
+
+---
+
+## 1. Core
+
+### `departments`
+| Column       | Type         | Constraints             | Notes                        |
+|--------------|--------------|-------------------------|------------------------------|
+| id           | uuid         | PK                      |                              |
+| name         | varchar(100) | NOT NULL, UNIQUE        | Engineering, Sales, etc.     |
+| head_id      | uuid         | FK → employees.id       | Department head (nullable)   |
+| created_at   | timestamptz  | DEFAULT now()           |                              |
+| deleted_at   | timestamptz  | nullable                | Soft delete                  |
+
+---
+
+### `employees`
+The central table. Referenced by almost every other table.
+
+| Column           | Type         | Constraints              | Notes                                         |
+|------------------|--------------|--------------------------|-----------------------------------------------|
+| id               | uuid         | PK                       |                                               |
+| employee_code    | varchar(20)  | UNIQUE, NOT NULL         | e.g. EMP-0001                                 |
+| first_name       | varchar(100) | NOT NULL                 |                                               |
+| last_name        | varchar(100) | NOT NULL                 |                                               |
+| middle_name      | varchar(100) | nullable                 |                                               |
+| email            | varchar(255) | UNIQUE, NOT NULL         | Work email                                    |
+| personal_email   | varchar(255) | nullable                 |                                               |
+| phone            | varchar(30)  | nullable                 |                                               |
+| avatar_initials  | varchar(4)   | nullable                 | e.g. "SO" for Sara Okafor                     |
+| department_id    | uuid         | FK → departments.id      |                                               |
+| role_title       | varchar(150) | NOT NULL                 | e.g. Senior Engineer                          |
+| employment_type  | varchar(30)  | NOT NULL                 | full-time, part-time, contract, internship    |
+| status           | varchar(30)  | NOT NULL, DEFAULT active | active, on_leave, inactive                    |
+| hire_date        | date         | NOT NULL                 |                                               |
+| end_date         | date         | nullable                 | For contracts or terminated employees         |
+| manager_id       | uuid         | FK → employees.id        | Self-referencing, nullable                    |
+| created_at       | timestamptz  | DEFAULT now()            |                                               |
+| updated_at       | timestamptz  | DEFAULT now()            |                                               |
+| deleted_at       | timestamptz  | nullable                 | Soft delete                                   |
+
+---
+
+### `users`
+Authentication table. An employee may have a user account, a candidate may also get a temporary account during onboarding.
+
+| Column           | Type         | Constraints              | Notes                                         |
+|------------------|--------------|--------------------------|-----------------------------------------------|
+| id               | uuid         | PK                       |                                               |
+| employee_id      | uuid         | FK → employees.id        | nullable — candidates won't have one yet      |
+| email            | varchar(255) | UNIQUE, NOT NULL         |                                               |
+| password_hash    | text         | NOT NULL                 |                                               |
+| role             | varchar(30)  | NOT NULL                 | super_admin, hr_admin, manager, employee      |
+| is_active        | boolean      | DEFAULT true             |                                               |
+| last_login_at    | timestamptz  | nullable                 |                                               |
+| created_at       | timestamptz  | DEFAULT now()            |                                               |
+| deleted_at       | timestamptz  | nullable                 |                                               |
+
+---
+
+## 2. Payroll
+
+### `payroll_cutoffs`
+Defines each payroll period. All payroll-related records reference a cutoff.
+
+| Column        | Type         | Constraints    | Notes                              |
+|---------------|--------------|----------------|------------------------------------|
+| id            | uuid         | PK             |                                    |
+| label         | varchar(50)  | NOT NULL       | e.g. "Mar 1–15, 2026"              |
+| start_date    | date         | NOT NULL       |                                    |
+| end_date      | date         | NOT NULL       |                                    |
+| status        | varchar(20)  | NOT NULL       | open, locked, processed            |
+| processed_at  | timestamptz  | nullable       | When payroll was run               |
+| processed_by  | uuid         | FK → users.id  | nullable                           |
+| created_at    | timestamptz  | DEFAULT now()  |                                    |
+
+---
+
+### `compensation_packages`
+Global reusable pay/contribution/benefit sets HR configures.
+
+| Column        | Type         | Constraints    | Notes                                          |
+|---------------|--------------|----------------|------------------------------------------------|
+| id            | uuid         | PK             |                                                |
+| type          | varchar(20)  | NOT NULL       | basic_pay, contribution, benefit               |
+| name          | varchar(100) | NOT NULL       | e.g. "Standard", "Executive", "Premium"        |
+| description   | text         | nullable       |                                                |
+| config        | jsonb        | NOT NULL       | Stores all rates/flags for that package type   |
+| color         | varchar(10)  | nullable       | UI accent color                                |
+| is_default    | boolean      | DEFAULT false  |                                                |
+| created_at    | timestamptz  | DEFAULT now()  |                                                |
+| deleted_at    | timestamptz  | nullable       |                                                |
+
+> **`config` shape by type:**
+> - `basic_pay`: `{ pay_frequency, overtime_rate, night_diff_rate, holiday_rate }`
+> - `contribution`: `{ sss, sss_rate, philhealth, philhealth_rate, pagibig, pagibig_rate, withholding_tax, tax_rate }`
+> - `benefit`: `{ hmo, life_insurance, annual_leave, sick_leave, meal_allowance, transport_allowance, thirteenth_month }`
+
+---
+
+### `employee_compensation`
+The assigned compensation packages per employee, plus their actual salary.
+
+| Column                | Type         | Constraints              | Notes                          |
+|-----------------------|--------------|--------------------------|--------------------------------|
+| id                    | uuid         | PK                       |                                |
+| employee_id           | uuid         | FK → employees.id        | UNIQUE — one record per emp    |
+| annual_salary         | bigint       | NOT NULL                 | Stored in centavos             |
+| pay_frequency         | varchar(20)  | NOT NULL                 | monthly, semi-monthly, bi-weekly, weekly |
+| basic_pay_package_id  | uuid         | FK → compensation_packages.id |                           |
+| contribution_package_id| uuid        | FK → compensation_packages.id |                           |
+| benefit_package_id    | uuid         | FK → compensation_packages.id |                           |
+| effective_date        | date         | NOT NULL                 |                                |
+| created_at            | timestamptz  | DEFAULT now()            |                                |
+| updated_at            | timestamptz  | DEFAULT now()            |                                |
+
+---
+
+### `salary_history`
+Audit trail of every salary change.
+
+| Column         | Type         | Constraints          | Notes                            |
+|----------------|--------------|----------------------|----------------------------------|
+| id             | uuid         | PK                   |                                  |
+| employee_id    | uuid         | FK → employees.id    |                                  |
+| old_salary     | bigint       | NOT NULL             | Centavos                         |
+| new_salary     | bigint       | NOT NULL             | Centavos                         |
+| pay_frequency  | varchar(20)  | NOT NULL             |                                  |
+| reason         | text         | NOT NULL             |                                  |
+| changed_by     | uuid         | FK → users.id        |                                  |
+| changed_at     | timestamptz  | DEFAULT now()        |                                  |
+
+---
+
+### `payroll_adjustments`
+Per-employee, per-cutoff overrides — bonuses, deductions, prorated salary.
+
+| Column            | Type         | Constraints               | Notes                              |
+|-------------------|--------------|---------------------------|------------------------------------|
+| id                | uuid         | PK                        |                                    |
+| employee_id       | uuid         | FK → employees.id         |                                    |
+| cutoff_id         | uuid         | FK → payroll_cutoffs.id   |                                    |
+| type              | varchar(30)  | NOT NULL                  | bonus, deduction, salary_override  |
+| amount            | bigint       | NOT NULL                  | Centavos, can be negative          |
+| reason            | varchar(255) | NOT NULL                  |                                    |
+| created_by        | uuid         | FK → users.id             |                                    |
+| created_at        | timestamptz  | DEFAULT now()             |                                    |
+
+---
+
+### `payslips`
+Generated payslip per employee per cutoff.
+
+| Column            | Type         | Constraints               | Notes                              |
+|-------------------|--------------|---------------------------|------------------------------------|
+| id                | uuid         | PK                        |                                    |
+| employee_id       | uuid         | FK → employees.id         |                                    |
+| cutoff_id         | uuid         | FK → payroll_cutoffs.id   |                                    |
+| gross_pay         | bigint       | NOT NULL                  | Centavos                           |
+| total_deductions  | bigint       | NOT NULL                  | Centavos                           |
+| net_pay           | bigint       | NOT NULL                  | Centavos                           |
+| breakdown         | jsonb        | NOT NULL                  | Line-by-line earnings/deductions   |
+| generated_at      | timestamptz  | DEFAULT now()             |                                    |
+| generated_by      | uuid         | FK → users.id             |                                    |
+
+---
+
+## 3. Time & Attendance
+
+### `attendance_records`
+One record per employee per working day.
+
+| Column              | Type         | Constraints          | Notes                                        |
+|---------------------|--------------|----------------------|----------------------------------------------|
+| id                  | uuid         | PK                   |                                              |
+| employee_id         | uuid         | FK → employees.id    |                                              |
+| date                | date         | NOT NULL             |                                              |
+| status              | varchar(20)  | NOT NULL             | present, remote, late, absent, on_leave      |
+| time_in             | time         | nullable             |                                              |
+| time_out            | time         | nullable             |                                              |
+| break_out           | time         | nullable             | Must be within 12:00–13:00 window            |
+| break_in            | time         | nullable             |                                              |
+| break_duration_mins | smallint     | nullable             | Computed: break_in - break_out               |
+| break_flag          | varchar(20)  | nullable             | exceeded, early, null                        |
+| net_hours           | numeric(4,2) | nullable             | Gross hours minus break                      |
+| is_corrected        | boolean      | DEFAULT false        |                                              |
+| created_at          | timestamptz  | DEFAULT now()        |                                              |
+| updated_at          | timestamptz  | DEFAULT now()        |                                              |
+| UNIQUE              |              | (employee_id, date)  | One record per employee per day              |
+
+---
+
+### `attendance_corrections`
+Full audit trail of every correction made by HR.
+
+| Column            | Type         | Constraints              | Notes                              |
+|-------------------|--------------|---------------------------|------------------------------------|
+| id                | uuid         | PK                        |                                    |
+| attendance_id     | uuid         | FK → attendance_records.id|                                    |
+| employee_id       | uuid         | FK → employees.id         | Denormalized for easy querying     |
+| date              | date         | NOT NULL                  |                                    |
+| old_status        | varchar(20)  | NOT NULL                  |                                    |
+| new_status        | varchar(20)  | NOT NULL                  |                                    |
+| old_time_in       | time         | nullable                  |                                    |
+| new_time_in       | time         | nullable                  |                                    |
+| old_time_out      | time         | nullable                  |                                    |
+| new_time_out      | time         | nullable                  |                                    |
+| old_break_out     | time         | nullable                  |                                    |
+| new_break_out     | time         | nullable                  |                                    |
+| old_break_in      | time         | nullable                  |                                    |
+| new_break_in      | time         | nullable                  |                                    |
+| reason            | text         | NOT NULL                  |                                    |
+| corrected_by      | uuid         | FK → users.id             |                                    |
+| corrected_at      | timestamptz  | DEFAULT now()             |                                    |
+
+---
+
+### `ot_ut_records`
+Overtime and undertime records per employee per day.
+
+| Column       | Type         | Constraints          | Notes                              |
+|--------------|--------------|----------------------|------------------------------------|
+| id           | uuid         | PK                   |                                    |
+| employee_id  | uuid         | FK → employees.id    |                                    |
+| attendance_id| uuid         | FK → attendance_records.id | nullable — can be standalone  |
+| date         | date         | NOT NULL             |                                    |
+| type         | varchar(5)   | NOT NULL             | OT, UT                             |
+| hours        | numeric(4,2) | NOT NULL             |                                    |
+| reason       | text         | nullable             |                                    |
+| status       | varchar(20)  | NOT NULL             | pending, approved, flagged         |
+| reviewed_by  | uuid         | FK → users.id        | nullable                           |
+| reviewed_at  | timestamptz  | nullable             |                                    |
+| created_at   | timestamptz  | DEFAULT now()        |                                    |
+
+---
+
+## 4. Leave
+
+### `leave_types`
+Configurable leave types (Annual, Sick, Emergency, Maternity, etc.)
+
+| Column        | Type         | Constraints    | Notes                              |
+|---------------|--------------|----------------|------------------------------------|
+| id            | uuid         | PK             |                                    |
+| name          | varchar(100) | NOT NULL       | Annual Leave, Sick Leave, etc.     |
+| default_days  | smallint     | NOT NULL       | Default allocation per year        |
+| is_paid       | boolean      | DEFAULT true   |                                    |
+| requires_docs | boolean      | DEFAULT false  | e.g. medical cert for sick leave   |
+| color         | varchar(10)  | nullable       |                                    |
+| created_at    | timestamptz  | DEFAULT now()  |                                    |
+| deleted_at    | timestamptz  | nullable       |                                    |
+
+---
+
+### `leave_balances`
+Current leave balance per employee per leave type per year.
+
+| Column          | Type         | Constraints          | Notes                          |
+|-----------------|--------------|----------------------|--------------------------------|
+| id              | uuid         | PK                   |                                |
+| employee_id     | uuid         | FK → employees.id    |                                |
+| leave_type_id   | uuid         | FK → leave_types.id  |                                |
+| year            | smallint     | NOT NULL             | e.g. 2026                      |
+| total_days      | numeric(4,1) | NOT NULL             |                                |
+| used_days       | numeric(4,1) | DEFAULT 0            |                                |
+| pending_days    | numeric(4,1) | DEFAULT 0            | Filed but not yet approved     |
+| UNIQUE          |              | (employee_id, leave_type_id, year) |                  |
+
+---
+
+### `leave_requests`
+| Column          | Type         | Constraints          | Notes                              |
+|-----------------|--------------|----------------------|------------------------------------|
+| id              | uuid         | PK                   |                                    |
+| employee_id     | uuid         | FK → employees.id    |                                    |
+| leave_type_id   | uuid         | FK → leave_types.id  |                                    |
+| start_date      | date         | NOT NULL             |                                    |
+| end_date        | date         | NOT NULL             |                                    |
+| total_days      | numeric(4,1) | NOT NULL             |                                    |
+| reason          | text         | nullable             |                                    |
+| status          | varchar(20)  | NOT NULL             | pending, approved, rejected        |
+| reviewed_by     | uuid         | FK → users.id        | nullable                           |
+| reviewed_at     | timestamptz  | nullable             |                                    |
+| reviewed_note   | text         | nullable             |                                    |
+| filed_at        | timestamptz  | DEFAULT now()        |                                    |
+
+---
+
+## 5. Offset
+
+### `offsets`
+Simple source → target offset record. No separate bank — one table handles everything.
+
+| Column           | Type         | Constraints          | Notes                                          |
+|------------------|--------------|----------------------|------------------------------------------------|
+| id               | uuid         | PK                   |                                                |
+| employee_id      | uuid         | FK → employees.id    |                                                |
+| type             | varchar(20)  | NOT NULL             | OT, adjustment                                 |
+| source_date      | date         | NOT NULL             | The day hours are taken FROM                   |
+| source_time_in   | time         | NOT NULL             |                                                |
+| source_time_out  | time         | NOT NULL             |                                                |
+| source_hours     | numeric(4,2) | NOT NULL             | Total hours worked on source date              |
+| source_extra_hrs | numeric(4,2) | nullable             | OT only — hours beyond 8                       |
+| target_date      | date         | NOT NULL             | The day the offset is APPLIED TO               |
+| target_time_in   | time         | NOT NULL             |                                                |
+| target_time_out  | time         | NOT NULL             |                                                |
+| target_hours     | numeric(4,2) | NOT NULL             | Actual hours on target day                     |
+| offset_hours     | numeric(4,2) | NOT NULL             | Hours bridging the gap to reach 8h             |
+| effective_hours  | numeric(4,2) | NOT NULL             | target_hours + offset_hours (must be >= 8)     |
+| reason           | text         | NOT NULL             |                                                |
+| status           | varchar(20)  | NOT NULL             | pending, approved, voided                      |
+| reviewed_by      | uuid         | FK → users.id        | nullable                                       |
+| reviewed_at      | timestamptz  | nullable             |                                                |
+| created_by       | uuid         | FK → users.id        |                                                |
+| created_at       | timestamptz  | DEFAULT now()        |                                                |
+
+---
+
+## 6. Recruitment
+
+### `job_openings`
+| Column        | Type          | Constraints          | Notes                                        |
+|---------------|---------------|----------------------|----------------------------------------------|
+| id            | uuid          | PK                   |                                              |
+| title         | varchar(200)  | NOT NULL             |                                              |
+| department_id | uuid          | FK → departments.id  |                                              |
+| employment_type| varchar(30)  | NOT NULL             | full-time, part-time, contract, internship   |
+| location      | varchar(150)  | NOT NULL             |                                              |
+| salary_min    | bigint        | nullable             | Centavos                                     |
+| salary_max    | bigint        | nullable             | Centavos                                     |
+| headcount     | smallint      | NOT NULL, DEFAULT 1  |                                              |
+| filled_count  | smallint      | NOT NULL, DEFAULT 0  |                                              |
+| priority      | varchar(10)   | NOT NULL             | high, medium, low                            |
+| description   | text          | nullable             |                                              |
+| requirements  | text          | nullable             |                                              |
+| status        | varchar(20)   | NOT NULL             | open, closed                                 |
+| posted_on     | date          | DEFAULT today        |                                              |
+| deadline      | date          | nullable             |                                              |
+| created_by    | uuid          | FK → users.id        |                                              |
+| created_at    | timestamptz   | DEFAULT now()        |                                              |
+| deleted_at    | timestamptz   | nullable             |                                              |
+
+---
+
+### `pipeline_stages`
+Custom stages per job opening. Also stores the global default (job_opening_id = null).
+
+| Column          | Type         | Constraints              | Notes                                      |
+|-----------------|--------------|--------------------------|--------------------------------------------|
+| id              | uuid         | PK                       |                                            |
+| job_opening_id  | uuid         | FK → job_openings.id     | NULL = global default stage                |
+| label           | varchar(100) | NOT NULL                 | e.g. "Technical Interview"                 |
+| color           | varchar(10)  | nullable                 | UI hex color                               |
+| icon            | varchar(10)  | nullable                 | Emoji or icon key                          |
+| sort_order      | smallint     | NOT NULL                 | Position in the pipeline                   |
+| created_at      | timestamptz  | DEFAULT now()            |                                            |
+
+---
+
+### `candidates`
+People who apply for job openings. Not employees yet.
+
+| Column       | Type         | Constraints    | Notes                              |
+|--------------|--------------|----------------|------------------------------------|
+| id           | uuid         | PK             |                                    |
+| first_name   | varchar(100) | NOT NULL       |                                    |
+| last_name    | varchar(100) | NOT NULL       |                                    |
+| email        | varchar(255) | NOT NULL       |                                    |
+| phone        | varchar(30)  | nullable       |                                    |
+| source       | varchar(50)  | nullable       | LinkedIn, Referral, JobStreet, etc.|
+| created_at   | timestamptz  | DEFAULT now()  |                                    |
+
+---
+
+### `applications`
+One candidate can apply to multiple openings.
+
+| Column          | Type         | Constraints              | Notes                              |
+|-----------------|--------------|---------------------------|------------------------------------|
+| id              | uuid         | PK                        |                                    |
+| candidate_id    | uuid         | FK → candidates.id        |                                    |
+| job_opening_id  | uuid         | FK → job_openings.id      |                                    |
+| stage_id        | uuid         | FK → pipeline_stages.id   | Current stage                      |
+| status          | varchar(20)  | NOT NULL                  | active, hired, rejected            |
+| rating          | smallint     | nullable                  | 1–5 HR rating                      |
+| notes           | text         | nullable                  | Internal HR notes                  |
+| applied_at      | timestamptz  | DEFAULT now()             |                                    |
+| UNIQUE          |              | (candidate_id, job_opening_id) |                               |
+
+---
+
+### `application_stage_history`
+Full audit of every stage movement.
+
+| Column         | Type         | Constraints              | Notes               |
+|----------------|--------------|--------------------------|---------------------|
+| id             | uuid         | PK                       |                     |
+| application_id | uuid         | FK → applications.id     |                     |
+| from_stage_id  | uuid         | FK → pipeline_stages.id  | nullable (first move)|
+| to_stage_id    | uuid         | FK → pipeline_stages.id  |                     |
+| moved_by       | uuid         | FK → users.id            |                     |
+| moved_at       | timestamptz  | DEFAULT now()            |                     |
+| note           | text         | nullable                 |                     |
+
+---
+
+### `interviews`
+| Column         | Type         | Constraints              | Notes                              |
+|----------------|--------------|---------------------------|------------------------------------|
+| id             | uuid         | PK                        |                                    |
+| application_id | uuid         | FK → applications.id      |                                    |
+| type           | varchar(50)  | NOT NULL                  | Phone Screen, Technical, Panel…    |
+| scheduled_at   | timestamptz  | NOT NULL                  |                                    |
+| interviewer_id | uuid         | FK → employees.id         | nullable — can be external         |
+| interviewer_name| varchar(150)| nullable                  | For external interviewers          |
+| meeting_link   | text         | nullable                  |                                    |
+| notes          | text         | nullable                  | Pre-interview notes                |
+| feedback       | text         | nullable                  | Post-interview feedback            |
+| status         | varchar(20)  | NOT NULL                  | scheduled, completed, cancelled    |
+| created_at     | timestamptz  | DEFAULT now()             |                                    |
+
+---
+
+### `offers`
+| Column         | Type         | Constraints              | Notes                              |
+|----------------|--------------|---------------------------|------------------------------------|
+| id             | uuid         | PK                        |                                    |
+| application_id | uuid         | FK → applications.id      |                                    |
+| offered_salary | bigint       | NOT NULL                  | Centavos                           |
+| start_date     | date         | NOT NULL                  |                                    |
+| expires_on     | date         | nullable                  |                                    |
+| sent_at        | timestamptz  | nullable                  |                                    |
+| status         | varchar(20)  | NOT NULL                  | draft, sent, accepted, declined    |
+| notes          | text         | nullable                  |                                    |
+| created_by     | uuid         | FK → users.id             |                                    |
+| created_at     | timestamptz  | DEFAULT now()             |                                    |
+
+---
+
+### `onboarding_checklists`
+One checklist per hired candidate. Tasks are seeded from `onboarding_task_templates`.
+
+| Column         | Type         | Constraints          | Notes                              |
+|----------------|--------------|----------------------|------------------------------------|
+| id             | uuid         | PK                   |                                    |
+| application_id | uuid         | FK → applications.id |                                    |
+| employee_id    | uuid         | FK → employees.id    | Set once candidate becomes employee|
+| start_date     | date         | NOT NULL             |                                    |
+| completed_at   | timestamptz  | nullable             |                                    |
+| created_at     | timestamptz  | DEFAULT now()        |                                    |
+
+---
+
+### `onboarding_task_templates`
+Reusable template items for onboarding checklists.
+
+| Column        | Type         | Constraints    | Notes                              |
+|---------------|--------------|----------------|------------------------------------|
+| id            | uuid         | PK             |                                    |
+| label         | varchar(255) | NOT NULL       |                                    |
+| category      | varchar(30)  | NOT NULL       | pre_start, day_1, week_1, month_1  |
+| days_relative | smallint     | NOT NULL       | Days relative to start_date        |
+| sort_order    | smallint     | NOT NULL       |                                    |
+
+---
+
+### `onboarding_tasks`
+The actual tasks per checklist instance (copied from templates, then tracked independently).
+
+| Column          | Type         | Constraints                    | Notes               |
+|-----------------|--------------|--------------------------------|---------------------|
+| id              | uuid         | PK                             |                     |
+| checklist_id    | uuid         | FK → onboarding_checklists.id  |                     |
+| template_id     | uuid         | FK → onboarding_task_templates.id | nullable — custom tasks won't have a template |
+| label           | varchar(255) | NOT NULL                       |                     |
+| category        | varchar(30)  | NOT NULL                       |                     |
+| due_date        | date         | nullable                       |                     |
+| is_done         | boolean      | DEFAULT false                  |                     |
+| done_at         | timestamptz  | nullable                       |                     |
+| done_by         | uuid         | FK → users.id                  | nullable            |
+
+---
+
+## 7. Task Management
+
+### `projects`
+Tasks belong to a project. Projects are the top-level grouping.
+
+| Column        | Type         | Constraints          | Notes                              |
+|---------------|--------------|----------------------|------------------------------------|
+| id            | uuid         | PK                   |                                    |
+| name          | varchar(200) | NOT NULL             |                                    |
+| description   | text         | nullable             |                                    |
+| department_id | uuid         | FK → departments.id  | nullable — can be cross-dept        |
+| owner_id      | uuid         | FK → employees.id    | Project owner / lead               |
+| status        | varchar(20)  | NOT NULL             | active, on_hold, completed, archived|
+| start_date    | date         | nullable             |                                    |
+| end_date      | date         | nullable             |                                    |
+| created_by    | uuid         | FK → users.id        |                                    |
+| created_at    | timestamptz  | DEFAULT now()        |                                    |
+| deleted_at    | timestamptz  | nullable             |                                    |
+
+---
+
+### `project_members`
+Who has access to a project.
+
+| Column       | Type         | Constraints          | Notes                   |
+|--------------|--------------|----------------------|-------------------------|
+| id           | uuid         | PK                   |                         |
+| project_id   | uuid         | FK → projects.id     |                         |
+| employee_id  | uuid         | FK → employees.id    |                         |
+| role         | varchar(20)  | NOT NULL             | owner, member, viewer   |
+| joined_at    | timestamptz  | DEFAULT now()        |                         |
+| UNIQUE       |              | (project_id, employee_id) |                    |
+
+---
+
+### `tasks`
+Core task table. Handles project tasks, assigned tasks, and personal to-dos.
+
+| Column          | Type         | Constraints          | Notes                                          |
+|-----------------|--------------|----------------------|------------------------------------------------|
+| id              | uuid         | PK                   |                                                |
+| project_id      | uuid         | FK → projects.id     | nullable — personal tasks have no project      |
+| parent_task_id  | uuid         | FK → tasks.id        | nullable — for subtasks                        |
+| title           | varchar(500) | NOT NULL             |                                                |
+| description     | text         | nullable             |                                                |
+| status          | varchar(20)  | NOT NULL             | todo, in_progress, in_review, done, cancelled  |
+| priority        | varchar(10)  | NOT NULL             | low, medium, high, urgent                      |
+| assigned_to     | uuid         | FK → employees.id    | nullable — unassigned tasks allowed            |
+| assigned_by     | uuid         | FK → employees.id    | nullable — self-assigned personal tasks        |
+| due_date        | date         | nullable             |                                                |
+| started_at      | timestamptz  | nullable             |                                                |
+| completed_at    | timestamptz  | nullable             |                                                |
+| estimated_hours | numeric(5,2) | nullable             |                                                |
+| is_personal     | boolean      | DEFAULT false        | Personal to-do — only visible to the assignee  |
+| created_by      | uuid         | FK → users.id        |                                                |
+| created_at      | timestamptz  | DEFAULT now()        |                                                |
+| updated_at      | timestamptz  | DEFAULT now()        |                                                |
+| deleted_at      | timestamptz  | nullable             |                                                |
+
+---
+
+### `task_tags`
+Tags for categorizing tasks.
+
+| Column     | Type         | Constraints    | Notes              |
+|------------|--------------|----------------|--------------------|
+| id         | uuid         | PK             |                    |
+| name       | varchar(50)  | NOT NULL UNIQUE|                    |
+| color      | varchar(10)  | nullable       |                    |
+
+---
+
+### `task_tag_assignments`
+Many-to-many between tasks and tags.
+
+| Column   | Type | Constraints        |
+|----------|------|--------------------|
+| task_id  | uuid | FK → tasks.id      |
+| tag_id   | uuid | FK → task_tags.id  |
+| PRIMARY KEY | | (task_id, tag_id) |
+
+---
+
+### `task_time_logs`
+Time tracking per task per employee.
+
+| Column      | Type         | Constraints       | Notes                              |
+|-------------|--------------|-------------------|------------------------------------|
+| id          | uuid         | PK                |                                    |
+| task_id     | uuid         | FK → tasks.id     |                                    |
+| employee_id | uuid         | FK → employees.id |                                    |
+| started_at  | timestamptz  | NOT NULL          |                                    |
+| ended_at    | timestamptz  | nullable          | null = timer still running         |
+| duration_mins| integer     | nullable          | Computed: ended_at - started_at    |
+| note        | text         | nullable          |                                    |
+| logged_at   | timestamptz  | DEFAULT now()     |                                    |
+
+---
+
+### `task_comments`
+Comments and activity log per task.
+
+| Column      | Type         | Constraints       | Notes                              |
+|-------------|--------------|-------------------|------------------------------------|
+| id          | uuid         | PK                |                                    |
+| task_id     | uuid         | FK → tasks.id     |                                    |
+| author_id   | uuid         | FK → users.id     |                                    |
+| body        | text         | NOT NULL          |                                    |
+| is_system   | boolean      | DEFAULT false     | true = auto-generated activity log |
+| created_at  | timestamptz  | DEFAULT now()     |                                    |
+| edited_at   | timestamptz  | nullable          |                                    |
+| deleted_at  | timestamptz  | nullable          |                                    |
+
+---
+
+### `task_attachments`
+Files attached to tasks.
+
+| Column      | Type         | Constraints       | Notes                              |
+|-------------|--------------|-------------------|------------------------------------|
+| id          | uuid         | PK                |                                    |
+| task_id     | uuid         | FK → tasks.id     |                                    |
+| uploaded_by | uuid         | FK → users.id     |                                    |
+| file_name   | varchar(255) | NOT NULL          |                                    |
+| file_url    | text         | NOT NULL          | S3 / storage path                  |
+| file_size   | integer      | nullable          | Bytes                              |
+| mime_type   | varchar(100) | nullable          |                                    |
+| uploaded_at | timestamptz  | DEFAULT now()     |                                    |
+
+---
+
+## 8. Shared
+
+### `notifications`
+In-app notifications for both HRIS events and task events.
+
+| Column      | Type         | Constraints       | Notes                                          |
+|-------------|--------------|-------------------|------------------------------------------------|
+| id          | uuid         | PK                |                                                |
+| user_id     | uuid         | FK → users.id     | Who receives this notification                 |
+| type        | varchar(50)  | NOT NULL          | leave_approved, task_assigned, interview_scheduled, etc. |
+| title       | varchar(255) | NOT NULL          |                                                |
+| body        | text         | nullable          |                                                |
+| ref_type    | varchar(50)  | nullable          | leave_request, task, interview, offer, etc.    |
+| ref_id      | uuid         | nullable          | The ID of the referenced record                |
+| is_read     | boolean      | DEFAULT false     |                                                |
+| created_at  | timestamptz  | DEFAULT now()     |                                                |
+
+---
+
+### `activity_logs`
+System-wide audit trail of every state-changing action.
+
+| Column      | Type         | Constraints       | Notes                                          |
+|-------------|--------------|-------------------|------------------------------------------------|
+| id          | uuid         | PK                |                                                |
+| actor_id    | uuid         | FK → users.id     | Who did it                                     |
+| action      | varchar(100) | NOT NULL          | e.g. leave.approved, task.status_changed       |
+| target_type | varchar(50)  | NOT NULL          | Table name: leave_requests, tasks, etc.        |
+| target_id   | uuid         | NOT NULL          | ID of the affected record                      |
+| old_value   | jsonb        | nullable          | Snapshot before                                |
+| new_value   | jsonb        | nullable          | Snapshot after                                 |
+| ip_address  | inet         | nullable          |                                                |
+| created_at  | timestamptz  | DEFAULT now()     |                                                |
+
+---
+
+## 9. Relationship Map
+
+```
+employees ──────────────────────────────────────────────────────────────────────
+  │ department_id      → departments
+  │ manager_id         → employees (self)
+  │
+  ├── employee_compensation   → compensation_packages (×3)
+  ├── salary_history
+  ├── payroll_adjustments     → payroll_cutoffs
+  ├── payslips                → payroll_cutoffs
+  │
+  ├── attendance_records
+  │     └── attendance_corrections
+  ├── ot_ut_records
+  │
+  ├── leave_balances          → leave_types
+  ├── leave_requests          → leave_types
+  │
+  ├── offsets
+  │
+  └── (as interviewer) interviews
+
+candidates
+  └── applications            → job_openings
+        │ stage_id            → pipeline_stages  → job_openings
+        ├── application_stage_history
+        ├── interviews
+        ├── offers
+        └── onboarding_checklists
+              ├── (employee_id once hired)  → employees
+              └── onboarding_tasks         → onboarding_task_templates
+
+projects                      → departments
+  ├── project_members         → employees
+  └── tasks
+        ├── tasks (subtasks, self-ref)
+        ├── assigned_to / assigned_by      → employees
+        ├── task_tag_assignments           → task_tags
+        ├── task_time_logs                 → employees
+        ├── task_comments                  → users
+        └── task_attachments               → users
+
+users ── employee_id          → employees
+
+notifications                 → users
+activity_logs                 → users
+```
+
+---
+
+## Key Design Decisions
+
+| Decision | Reason |
+|---|---|
+| UUID primary keys everywhere | Safe for distributed systems, no sequential ID guessing |
+| Monetary values as `bigint` (centavos) | Avoids float precision errors on financial calculations |
+| Soft deletes (`deleted_at`) on all core tables | Preserves history, supports undo, required for payroll audit |
+| `pipeline_stages` with `job_opening_id = NULL` for global defaults | One table handles both global template and per-job customization |
+| `tasks.is_personal` flag | Distinguishes personal to-dos from assigned/project tasks without a separate table |
+| `task_comments.is_system` flag | One table for both human comments and auto-generated activity entries (e.g. "Status changed to In Progress") |
+| `applications` separate from `candidates` | One candidate can apply to multiple openings — normalized correctly |
+| `onboarding_tasks` copied from templates | Templates are just seeds — once a checklist is created, tasks are independent so HR can customize per hire |
+| Single `activity_logs` table | Cross-module audit trail — works for HRIS events and task events equally |
+
+---
+
+## 10. Auth & Permissions (Addition)
+
+### `users` — Updated
+The `users` table gains two new columns for token-based auth:
+
+| Column              | Type         | Constraints    | Notes                                          |
+|---------------------|--------------|----------------|------------------------------------------------|
+| id                  | uuid         | PK             |                                                |
+| employee_id         | uuid         | FK → employees.id | nullable — candidates during onboarding     |
+| email               | varchar(255) | UNIQUE NOT NULL|                                                |
+| password_hash       | text         | NOT NULL       | bcrypt, never store plain text                 |
+| role                | varchar(30)  | NOT NULL       | super_admin, hr_admin, manager, employee       |
+| is_active           | boolean      | DEFAULT true   | HR can deactivate without deleting             |
+| must_change_password| boolean      | DEFAULT true   | true on first login (set-password flow)        |
+| last_login_at       | timestamptz  | nullable       |                                                |
+| created_at          | timestamptz  | DEFAULT now()  |                                                |
+| deleted_at          | timestamptz  | nullable       | Soft delete — deactivated accounts kept        |
+
+---
+
+### `password_reset_tokens`
+Used for the invite/set-password flow when HR creates a new account, and for forgot-password.
+
+| Column       | Type         | Constraints       | Notes                                     |
+|--------------|--------------|-------------------|-------------------------------------------|
+| id           | uuid         | PK                |                                           |
+| user_id      | uuid         | FK → users.id     |                                           |
+| token_hash   | text         | NOT NULL UNIQUE   | SHA-256 hash of the token sent via email  |
+| type         | varchar(20)  | NOT NULL          | invite, reset                             |
+| expires_at   | timestamptz  | NOT NULL          | invite: 72hrs, reset: 1hr                 |
+| used_at      | timestamptz  | nullable          | Set when token is consumed                |
+| created_at   | timestamptz  | DEFAULT now()     |                                           |
+
+---
+
+### `refresh_tokens`
+For JWT refresh token rotation. Keeps sessions alive securely.
+
+| Column       | Type         | Constraints       | Notes                                     |
+|--------------|--------------|-------------------|-------------------------------------------|
+| id           | uuid         | PK                |                                           |
+| user_id      | uuid         | FK → users.id     |                                           |
+| token_hash   | text         | NOT NULL UNIQUE   | Store hash only, never raw token          |
+| expires_at   | timestamptz  | NOT NULL          | e.g. 7 days                               |
+| revoked_at   | timestamptz  | nullable          | Logout / token rotation                   |
+| created_at   | timestamptz  | DEFAULT now()     |                                           |
+
+---
+
+### `permissions`
+Granular permissions. Each role has a set of permissions assigned. Allows fine-tuning beyond just role labels.
+
+| Column       | Type         | Constraints       | Notes                                              |
+|--------------|--------------|-------------------|----------------------------------------------------|
+| id           | uuid         | PK                |                                                    |
+| key          | varchar(100) | UNIQUE NOT NULL   | e.g. payroll.view, leave.approve, tasks.assign_any |
+| module       | varchar(50)  | NOT NULL          | payroll, leave, attendance, recruitment, tasks, etc|
+| description  | text         | nullable          |                                                    |
+
+---
+
+### `role_permissions`
+Maps roles to their allowed permissions.
+
+| Column        | Type         | Constraints             | Notes                        |
+|---------------|--------------|-------------------------|------------------------------|
+| role          | varchar(30)  | NOT NULL                | super_admin, hr_admin, etc.  |
+| permission_id | uuid         | FK → permissions.id     |                              |
+| PRIMARY KEY   |              | (role, permission_id)   |                              |
+
+---
+
+### `user_permission_overrides`
+Per-user overrides — grant or revoke a specific permission beyond what their role allows.
+
+| Column        | Type         | Constraints             | Notes                                   |
+|---------------|--------------|-------------------------|-----------------------------------------|
+| id            | uuid         | PK                      |                                         |
+| user_id       | uuid         | FK → users.id           |                                         |
+| permission_id | uuid         | FK → permissions.id     |                                         |
+| type          | varchar(10)  | NOT NULL                | grant, revoke                           |
+| reason        | text         | nullable                |                                         |
+| granted_by    | uuid         | FK → users.id           |                                         |
+| created_at    | timestamptz  | DEFAULT now()           |                                         |
+
+---
+
+### Permission Keys — Full List
+
+#### Employees
+| Key                      | Description                          |
+|--------------------------|--------------------------------------|
+| `employees.view_all`     | View all employee records            |
+| `employees.view_own`     | View own profile only                |
+| `employees.view_dept`    | View employees in own department     |
+| `employees.create`       | Create new employee records          |
+| `employees.edit_all`     | Edit any employee record             |
+| `employees.edit_own`     | Edit own profile only                |
+| `employees.deactivate`   | Deactivate employee accounts         |
+
+#### Payroll
+| Key                      | Description                          |
+|--------------------------|--------------------------------------|
+| `payroll.view_all`       | View all payslips and runs           |
+| `payroll.view_own`       | View own payslip only                |
+| `payroll.run`            | Run payroll for a cutoff             |
+| `payroll.adjust`         | Add bonuses/deductions               |
+| `payroll.configure`      | Manage compensation packages         |
+
+#### Attendance
+| Key                       | Description                         |
+|---------------------------|-------------------------------------|
+| `attendance.view_all`     | View all attendance records         |
+| `attendance.view_own`     | View own attendance only            |
+| `attendance.view_dept`    | View department attendance          |
+| `attendance.correct`      | Correct any attendance record       |
+| `attendance.correct_dept` | Correct attendance in own dept only |
+
+#### Leave
+| Key                    | Description                            |
+|------------------------|----------------------------------------|
+| `leave.view_all`       | View all leave requests                |
+| `leave.view_own`       | View own leave only                    |
+| `leave.view_dept`      | View dept leave requests               |
+| `leave.file`           | File a leave request                   |
+| `leave.approve_all`    | Approve any leave request              |
+| `leave.approve_dept`   | Approve leave within own dept          |
+| `leave.configure`      | Manage leave types and balances        |
+
+#### Offset
+| Key                    | Description                            |
+|------------------------|----------------------------------------|
+| `offset.view_all`      | View all offset records                |
+| `offset.view_own`      | View own offsets only                  |
+| `offset.create`        | Create offset records                  |
+| `offset.approve`       | Approve offset requests                |
+| `offset.void`          | Void offset records                    |
+
+#### Recruitment
+| Key                       | Description                         |
+|---------------------------|-------------------------------------|
+| `recruitment.view`        | View all recruitment data            |
+| `recruitment.manage_jobs` | Create/edit/close job openings       |
+| `recruitment.manage_applicants` | Move applicants, update stage  |
+| `recruitment.schedule_interviews` | Schedule interviews          |
+| `recruitment.manage_offers`  | Create/send/manage offers         |
+| `recruitment.manage_onboarding` | Manage onboarding checklists  |
+
+#### Tasks
+| Key                      | Description                          |
+|--------------------------|--------------------------------------|
+| `tasks.view_all`         | View all tasks across all projects   |
+| `tasks.view_own`         | View only tasks assigned to self     |
+| `tasks.view_dept`        | View tasks within own department     |
+| `tasks.create`           | Create tasks                         |
+| `tasks.assign_any`       | Assign tasks to anyone               |
+| `tasks.assign_dept`      | Assign tasks within own dept only    |
+| `tasks.manage_projects`  | Create/edit/archive projects         |
+
+#### System
+| Key                      | Description                          |
+|--------------------------|--------------------------------------|
+| `users.manage`           | Create, edit, deactivate user accounts|
+| `roles.assign`           | Change a user's role                 |
+| `permissions.override`   | Grant/revoke per-user permissions    |
+| `system.audit_logs`      | View the activity_logs table         |
+
+---
+
+### Role → Permission Matrix
+
+| Permission                   | super_admin | hr_admin | manager | employee |
+|------------------------------|:-----------:|:--------:|:-------:|:--------:|
+| `employees.view_all`         | ✓           | ✓        |         |          |
+| `employees.view_dept`        | ✓           | ✓        | ✓       |          |
+| `employees.view_own`         | ✓           | ✓        | ✓       | ✓        |
+| `employees.create`           | ✓           | ✓        |         |          |
+| `employees.edit_all`         | ✓           | ✓        |         |          |
+| `employees.edit_own`         | ✓           | ✓        | ✓       | ✓        |
+| `employees.deactivate`       | ✓           | ✓        |         |          |
+| `payroll.view_all`           | ✓           | ✓        |         |          |
+| `payroll.view_own`           | ✓           | ✓        | ✓       | ✓        |
+| `payroll.run`                | ✓           | ✓        |         |          |
+| `payroll.adjust`             | ✓           | ✓        |         |          |
+| `payroll.configure`          | ✓           | ✓        |         |          |
+| `attendance.view_all`        | ✓           | ✓        |         |          |
+| `attendance.view_dept`       | ✓           | ✓        | ✓       |          |
+| `attendance.view_own`        | ✓           | ✓        | ✓       | ✓        |
+| `attendance.correct`         | ✓           | ✓        |         |          |
+| `attendance.correct_dept`    | ✓           | ✓        | ✓       |          |
+| `leave.view_all`             | ✓           | ✓        |         |          |
+| `leave.view_dept`            | ✓           | ✓        | ✓       |          |
+| `leave.view_own`             | ✓           | ✓        | ✓       | ✓        |
+| `leave.file`                 | ✓           | ✓        | ✓       | ✓        |
+| `leave.approve_all`          | ✓           | ✓        |         |          |
+| `leave.approve_dept`         | ✓           | ✓        | ✓       |          |
+| `leave.configure`            | ✓           | ✓        |         |          |
+| `offset.view_all`            | ✓           | ✓        |         |          |
+| `offset.view_own`            | ✓           | ✓        | ✓       | ✓        |
+| `offset.create`              | ✓           | ✓        |         |          |
+| `offset.approve`             | ✓           | ✓        |         |          |
+| `offset.void`                | ✓           | ✓        |         |          |
+| `recruitment.view`           | ✓           | ✓        |         |          |
+| `recruitment.manage_jobs`    | ✓           | ✓        |         |          |
+| `recruitment.manage_applicants`| ✓         | ✓        |         |          |
+| `recruitment.schedule_interviews`| ✓       | ✓        |         |          |
+| `recruitment.manage_offers`  | ✓           | ✓        |         |          |
+| `recruitment.manage_onboarding`| ✓         | ✓        |         |          |
+| `tasks.view_all`             | ✓           | ✓        |         |          |
+| `tasks.view_dept`            | ✓           | ✓        | ✓       |          |
+| `tasks.view_own`             | ✓           | ✓        | ✓       | ✓        |
+| `tasks.create`               | ✓           | ✓        | ✓       | ✓        |
+| `tasks.assign_any`           | ✓           | ✓        |         |          |
+| `tasks.assign_dept`          | ✓           | ✓        | ✓       |          |
+| `tasks.manage_projects`      | ✓           | ✓        | ✓       |          |
+| `users.manage`               | ✓           | ✓        |         |          |
+| `roles.assign`               | ✓           |          |         |          |
+| `permissions.override`       | ✓           |          |         |          |
+| `system.audit_logs`          | ✓           |          |         |          |
+
+> **Note:** `super_admin` can override any permission for any user. `hr_admin` can manage users but cannot change roles or override permissions — that's super_admin only.
+
+---
+
+### Auth Flow Diagrams
+
+#### New Employee Account Creation
+```
+HR creates employee record
+  → System auto-creates users row (role = employee, is_active = true, must_change_password = true)
+    → password_reset_tokens row created (type = invite, expires 72hrs)
+      → Email sent to employee with set-password link
+        → Employee clicks link, sets password
+          → token marked used_at = now()
+          → must_change_password = false
+            → Employee can now log in
+```
+
+#### Login Flow
+```
+POST /auth/login  { email, password }
+  → Lookup user by email
+  → Check is_active = true
+  → Verify bcrypt password hash
+  → Generate access token (JWT, 15min expiry)
+  → Generate refresh token (opaque, 7 days)
+    → Store refresh_tokens row (hash only)
+  → Return { access_token, refresh_token, user: { id, role, name } }
+```
+
+#### Token Refresh
+```
+POST /auth/refresh  { refresh_token }
+  → Hash incoming token, lookup in refresh_tokens
+  → Check not revoked, not expired
+  → Issue new access token
+  → Rotate refresh token (revoke old, issue new)
+```
+
+#### Forgot Password
+```
+POST /auth/forgot-password  { email }
+  → Lookup user (always return 200 to prevent enumeration)
+  → Create password_reset_tokens row (type = reset, expires 1hr)
+  → Send reset email
+```
