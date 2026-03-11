@@ -1,4 +1,3 @@
-import { useState } from "react";
 
 const navItems = ["Dashboard", "People", "Payroll", "Time & Leave", "Recruitment", "Reports"];
 

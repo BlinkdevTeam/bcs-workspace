@@ -335,10 +335,11 @@ export default function Header({ currentUser = CURRENT_USER, onLogout }) {
     return () => document.removeEventListener("keydown", handleKey);
   }, []);
 
-  function handleLogout() {
-    setLoggedOut(true);
-    if (onLogout) onLogout();
-  }
+  function handleLogout (){
+    localStorage.removeItem("isAuthenticated");
+    localStorage.removeItem("user");
+    navigate("/login", { replace: true });
+  };
 
   if (loggedOut) {
     return (

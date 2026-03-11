@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { Avatar, Field, IC, IS } from "../../../data/compData";
+
 // ── EDIT DRAWER ───────────────────────────────────────────────────────────────
 export default function EditDrawer({ emp, onClose, onSave }) {
   const [form, setForm] = useState({ ...emp });

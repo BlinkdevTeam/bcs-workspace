@@ -973,3 +973,99 @@ export const ONBOARDING_SEED = [
   },
 ];
 
+export const TOTAL_STEPS = 4; // steps 1–4 (step 5 is the done state)
+
+export const inputCls = "w-full px-4 py-3 rounded-lg text-sm text-white placeholder-gray-600 outline-none transition-all";
+
+export function inputStyle(error) {
+  return {
+    fontFamily:      "system-ui,sans-serif",
+    backgroundColor: "#111",
+    border:          `1px solid ${error ? "#f05a5a66" : "#2a2a2a"}`,
+  };
+}
+
+export const INDUSTRIES = [
+  "Technology", "Finance & Banking", "Healthcare", "Retail & E-commerce",
+  "Manufacturing", "Education", "Real Estate", "Logistics & Supply Chain",
+  "Media & Entertainment", "Professional Services", "Other",
+];
+
+export const COMPANY_SIZES = [
+  "1–10 employees", "11–50 employees", "51–200 employees",
+  "201–500 employees", "501–1,000 employees", "1,000+ employees",
+];
+
+export function parsePasswordStrength(password) {
+  const checks = [
+    { label:"8+ characters",     pass: password.length >= 8           },
+    { label:"Uppercase",         pass: /[A-Z]/.test(password)         },
+    { label:"Lowercase",         pass: /[a-z]/.test(password)         },
+    { label:"Number",            pass: /[0-9]/.test(password)         },
+    { label:"Special character", pass: /[^A-Za-z0-9]/.test(password)  },
+  ];
+  const score = checks.filter(c => c.pass).length;
+  return { checks, score };
+}
+
+export const STRENGTH_LABEL = ["", "Very Weak", "Weak", "Fair", "Strong", "Very Strong"];
+
+export const STRENGTH_COLOR = ["", "#f05a5a", "#f05a5a", "#f0c85a", "#5a9af0", "#5af07a"];
+
+export const ROLE_ACCESS = {
+  super_admin: [
+    { label:"All employees & records", level:"full", scope:"Full access"       },
+    { label:"Payroll & compensation",  level:"full", scope:"Full access"       },
+    { label:"Attendance & time",       level:"full", scope:"Full access"       },
+    { label:"Leave management",        level:"full", scope:"Full access"       },
+    { label:"Recruitment",             level:"full", scope:"Full access"       },
+    { label:"Task management",         level:"full", scope:"Full access"       },
+    { label:"User & role management",  level:"full", scope:"Full access"       },
+    { label:"System audit logs",       level:"full", scope:"Full access"       },
+  ],
+  hr_admin: [
+    { label:"All employees & records", level:"full", scope:"Full access"       },
+    { label:"Payroll & compensation",  level:"full", scope:"Full access"       },
+    { label:"Attendance & time",       level:"full", scope:"Full access"       },
+    { label:"Leave management",        level:"full", scope:"Full access + Approve" },
+    { label:"Recruitment",             level:"full", scope:"Full access"       },
+    { label:"Task management",         level:"full", scope:"View all + Assign" },
+    { label:"User management",         level:"full", scope:"Create & edit users" },
+    { label:"System audit logs",       level:"none", scope:"No access"        },
+  ],
+  manager: [
+    { label:"Employees",               level:"dept", scope:"Own department only" },
+    { label:"Payroll",                 level:"own",  scope:"Own payslip only"    },
+    { label:"Attendance",              level:"dept", scope:"Own department only" },
+    { label:"Leave management",        level:"dept", scope:"Approve dept leave"  },
+    { label:"Recruitment",             level:"none", scope:"No access"           },
+    { label:"Task management",         level:"dept", scope:"Assign within dept"  },
+    { label:"User management",         level:"none", scope:"No access"           },
+  ],
+  employee: [
+    { label:"Employee profile",        level:"own",  scope:"Own profile only"  },
+    { label:"Payroll",                 level:"own",  scope:"Own payslip only"  },
+    { label:"Attendance",              level:"own",  scope:"Own records only"  },
+    { label:"Leave",                   level:"own",  scope:"File & view own"   },
+    { label:"Offset",                  level:"own",  scope:"View own offsets"  },
+    { label:"Recruitment",             level:"none", scope:"No access"         },
+    { label:"Tasks",                   level:"own",  scope:"Own tasks only"    },
+    { label:"User management",         level:"none", scope:"No access"         },
+  ],
+};
+
+export const ROLE_LABELS = {
+  super_admin: "Super Admin",
+  hr_admin:    "HR Admin",
+  manager:     "Manager",
+  employee:    "Employee",
+};
+
+export const ROLE_COLORS = {
+  super_admin: "#f05a5a",
+  hr_admin:    "#5af07a",
+  manager:     "#5a9af0",
+  employee:    "#f0c85a",
+};
+
+export function avatarBg(id) { return AV_COLORS[id % AV_COLORS.length]; }
