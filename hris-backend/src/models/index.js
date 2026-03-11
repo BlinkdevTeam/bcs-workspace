@@ -6,6 +6,8 @@
 const User = require("./core/user");
 const Employee = require("./core/employee");
 const Department = require("./core/department");
+const PasswordResetToken = require("./core/passwordResettokens");
+const RefreshToken = require("./core/refreshTokens")
 
 // ─────────────────────────────────
 // PAYROLL MODELS
