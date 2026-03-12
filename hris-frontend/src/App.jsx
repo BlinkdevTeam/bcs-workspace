@@ -9,6 +9,7 @@ import {
 import PageLoader from "./components/ui/PageLoader";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./layouts/AppLayout";
+import { AuthProvider } from "./context/AuthProvider";
 
 import {
   EMPLOYEES,
@@ -187,112 +188,114 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        {/* ROOT REDIRECT */}
-        <Route
-          path="/"
-          element={
-            localStorage.getItem("setupComplete") !== "true" ? (
-              <Navigate to="/initial-setup" replace />
-            ) : localStorage.getItem("isAuthenticated") !== "true" ? (
-              <Navigate to="/login" replace />
-            ) : (
-              <Navigate to="/dashboard" replace />
-            )
-          }
-        />
+    <AuthProvider>
+        <Routes>
+          {/* ROOT REDIRECT */}
+          <Route
+            path="/"
+            element={
+              localStorage.getItem("setupComplete") !== "true" ? (
+                <Navigate to="/initial-setup" replace />
+              ) : localStorage.getItem("isAuthenticated") !== "true" ? (
+                <Navigate to="/login" replace />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
 
-        {/* INITIAL SETUP */}
-        <Route path="/initial-setup" element={<InitialSetupWrapper />} />
+          {/* INITIAL SETUP */}
+          <Route path="/initial-setup" element={<InitialSetupWrapper />} />
 
-        {/* LOGIN */}
-        <Route path="/login" element={<LoginWrapper />} />
+          {/* LOGIN */}
+          <Route path="/login" element={<LoginWrapper />} />
 
-        {/* DASHBOARD */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedLayout>
-              <Dashboard />
-            </ProtectedLayout>
-          }
-        />
+          {/* DASHBOARD */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedLayout>
+                <Dashboard />
+              </ProtectedLayout>
+            }
+          />
 
-        {/* PEOPLE */}
-        <Route
-          path="/people"
-          element={
-            <ProtectedLayout>
-              <People {...employeeProps} {...compPackageProps} />
-            </ProtectedLayout>
-          }
-        />
+          {/* PEOPLE */}
+          <Route
+            path="/people"
+            element={
+              <ProtectedLayout>
+                <People {...employeeProps} {...compPackageProps} />
+              </ProtectedLayout>
+            }
+          />
 
-        <Route
-          path="/people/:id"
-          element={
-            <ProtectedLayout>
-              <EmployeeProfile {...employeeProps} {...compPackageProps} />
-            </ProtectedLayout>
-          }
-        />
+          <Route
+            path="/people/:id"
+            element={
+              <ProtectedLayout>
+                <EmployeeProfile {...employeeProps} {...compPackageProps} />
+              </ProtectedLayout>
+            }
+          />
 
-        <Route
-          path="/people/:id/:tab"
-          element={
-            <SetupRoute>
-              <ProtectedRoute>
-                <AppLayout>
-                  <EmployeeProfile {...employeeProps} {...compPackageProps} />
-                </AppLayout>
-              </ProtectedRoute>
-            </SetupRoute>
-          }
-        />
+          <Route
+            path="/people/:id/:tab"
+            element={
+              <SetupRoute>
+                <ProtectedRoute>
+                  <AppLayout>
+                    <EmployeeProfile {...employeeProps} {...compPackageProps} />
+                  </AppLayout>
+                </ProtectedRoute>
+              </SetupRoute>
+            }
+          />
 
-        {/* PAYROLL */}
-        <Route
-          path="/payroll"
-          element={
-            <ProtectedLayout>
-              <Payroll {...payrollProps} />
-            </ProtectedLayout>
-          }
-        />
+          {/* PAYROLL */}
+          <Route
+            path="/payroll"
+            element={
+              <ProtectedLayout>
+                <Payroll {...payrollProps} />
+              </ProtectedLayout>
+            }
+          />
 
-        {/* TIME & LEAVE */}
-        <Route
-          path="/time-leave"
-          element={
-            <ProtectedLayout>
-              <TimeAndLeave employees={employees} />
-            </ProtectedLayout>
-          }
-        />
+          {/* TIME & LEAVE */}
+          <Route
+            path="/time-leave"
+            element={
+              <ProtectedLayout>
+                <TimeAndLeave employees={employees} />
+              </ProtectedLayout>
+            }
+          />
 
-        {/* RECRUITMENT */}
-        <Route
-          path="/recruitment"
-          element={
-            <ProtectedLayout>
-              <RecruitmentPage />
-            </ProtectedLayout>
-          }
-        />
+          {/* RECRUITMENT */}
+          <Route
+            path="/recruitment"
+            element={
+              <ProtectedLayout>
+                <RecruitmentPage />
+              </ProtectedLayout>
+            }
+          />
 
-        {/* USERS */}
-        <Route
-          path="/users"
-          element={
-            <ProtectedLayout>
-              <UserManagement />
-            </ProtectedLayout>
-          }
-        />
+          {/* USERS */}
+          <Route
+            path="/users"
+            element={
+              <ProtectedLayout>
+                <UserManagement />
+              </ProtectedLayout>
+            }
+          />
 
-        {/* CATCH ALL */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+          {/* CATCH ALL */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+    </AuthProvider>
+      </BrowserRouter>
   );
 }

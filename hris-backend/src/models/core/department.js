@@ -21,6 +21,10 @@ const Department = sequelize.define(
     head_id: {
       type: DataTypes.UUID,
       allowNull: true,
+      references: {
+        model: "employees",
+        key: "id",
+      },
     },
   },
   {

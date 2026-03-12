@@ -1,23 +1,91 @@
-import React from "react";
+/**
+ * Table Component
+ *
+ * Usage:
+ * <Table
+ *   columns={[
+ *     { key: "name", label: "Name", sortable: true },
+ *     { key: "email", label: "Email", sortable: true },
+ *     { key: "role", label: "Role" },
+ *     {
+ *       label: "Actions",
+ *       render: (row) => <button>Edit</button>
+ *     }
+ *   ]}
+ *   data={users}
+ * />
+ */
+
+import React, { useState, useMemo } from "react";
 
 export default function Table({ columns = [], data = [], className = "" }) {
+  const [sortKey, setSortKey] = useState(null);
+  const [sortDirection, setSortDirection] = useState("asc");
+
+  // Handle sorting
+  const handleSort = (key) => {
+    if (!key) return;
+
+    if (sortKey === key) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+  };
+
+  // Sorted data
+  const sortedData = useMemo(() => {
+    if (!sortKey) return data;
+
+    return [...data].sort((a, b) => {
+      const aValue = a[sortKey];
+      const bValue = b[sortKey];
+
+      if (aValue === bValue) return 0;
+
+      if (sortDirection === "asc") {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+  }, [data, sortKey, sortDirection]);
+
   return (
     <div className={`overflow-x-auto ${className}`}>
       <table className="min-w-full border-collapse">
+        {/* HEADER */}
         <thead>
           <tr>
             {columns.map((col) => (
               <th
                 key={col.key || col.label}
-                className="text-left text-gray-400 text-sm font-medium px-4 py-2 border-b border-gray-700"
+                onClick={() => col.sortable && handleSort(col.key)}
+                className={`px-4 py-2 border-b border-gray-700 text-sm font-medium text-gray-400 text-left ${
+                  col.sortable
+                    ? "cursor-pointer hover:text-white select-none"
+                    : ""
+                }`}
               >
-                {col.label}
+                <div className="flex items-center gap-1">
+                  {col.label}
+
+                  {/* Sort Indicator */}
+                  {col.sortable && sortKey === col.key && (
+                    <span className="text-xs">
+                      {sortDirection === "asc" ? "▲" : "▼"}
+                    </span>
+                  )}
+                </div>
               </th>
             ))}
           </tr>
         </thead>
+
+        {/* BODY */}
         <tbody>
-          {data.length === 0 ? (
+          {sortedData.length === 0 ? (
             <tr>
               <td
                 colSpan={columns.length}
@@ -27,7 +95,7 @@ export default function Table({ columns = [], data = [], className = "" }) {
               </td>
             </tr>
           ) : (
-            data.map((row, i) => (
+            sortedData.map((row, i) => (
               <tr key={i} className="hover:bg-gray-900">
                 {columns.map((col) => (
                   <td

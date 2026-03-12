@@ -3,11 +3,11 @@
 // ─────────────────────────────────
 // CORE MODELS
 // ─────────────────────────────────
-const User = require("./core/user");
+const HrisUser = require("./core/hris_user");
 const Employee = require("./core/employee");
 const Department = require("./core/department");
 const PasswordResetToken = require("./core/passwordResettokens");
-const RefreshToken = require("./core/refreshTokens")
+const RefreshToken = require("./core/refreshTokens");
 
 // ─────────────────────────────────
 // PAYROLL MODELS
@@ -78,8 +78,21 @@ const LogsHistory = require("./logs/history");
 Employee.belongsTo(Department, { foreignKey: "department_id" });
 Department.hasMany(Employee, { foreignKey: "department_id" });
 
-User.belongsTo(Employee, { foreignKey: "employee_id" });
-Employee.hasOne(User, { foreignKey: "employee_id" });
+HrisUser.belongsTo(Employee, { foreignKey: "employee_id" });
+Employee.hasOne(HrisUser, { foreignKey: "employee_id" });
+
+Employee.belongsTo(Employee, {
+  as: "manager",
+  foreignKey: "manager_id",
+});
+
+RefreshToken.belongsTo(Employee, {
+  foreignKey: "employee_id",
+});
+
+PasswordResetToken.belongsTo(Employee, {
+  foreignKey: "employee_id",
+});
 
 // ─────────────────────────────────
 // PAYROLL RELATIONSHIPS
@@ -213,9 +226,11 @@ TaskTimeLog.belongsTo(Employee, { foreignKey: "employee_id" });
 // EXPORT ALL MODELS
 // ─────────────────────────────────
 module.exports = {
-  User,
+  HrisUser,
   Employee,
   Department,
+  PasswordResetToken,
+  RefreshToken,
 
   PayrollCutoff,
   CompensationPackage,

@@ -5,6 +5,7 @@ require("./models"); // Important: loads all Sequelize models
 
 // ── IMPORT DEPENDENCIES ────────────────────────────────────
 const express = require("express");
+const cookieParser = require("cookie-parser"); // <-- added
 const app = express();
 const config = require("./config");
 const { connectDB } = require("./config/database");
@@ -15,6 +16,7 @@ const corsMiddleware = require("./config/cors");
 app.use(corsMiddleware); // Enable CORS
 app.use(express.json()); // Parse JSON request bodies
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser()); // <-- parse httpOnly cookies
 
 // ── ROUTES ────────────────────────────────────────────────
 
@@ -22,10 +24,11 @@ app.use(express.urlencoded({ extended: true }));
 const setupRoutes = require("./routes/setupRoutes");
 app.use("/setup", setupRoutes);
 
-// Authentication (login)
+// Authentication (login + refresh token)
 const authRoutes = require("./routes/authRoutes");
-app.use("/auth", authRoutes);
+app.use("/api/auth", authRoutes); // <-- frontend calls /api/auth/login & /api/auth/refresh
 
+// Health check route
 const healthRoutes = require("./routes/health");
 app.use("/api", healthRoutes);
 
@@ -33,9 +36,8 @@ app.use("/api", healthRoutes);
 const statsRoutes = require("./routes/stats");
 app.use("/api", statsRoutes);
 
+// Employees API
 const employeeRoutes = require("./routes/employeeRoutes");
-
-// This makes all /employees routes work
 app.use("/employees", employeeRoutes);
 
 // ── HEALTH CHECK (Optional but useful) ─────────────────────

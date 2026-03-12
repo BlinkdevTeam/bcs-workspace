@@ -7,11 +7,11 @@ export default function Textarea({
   onChange,
   placeholder,
   rows = 4,
-  error,
-  required = false,
   disabled = false,
+  error,
+  register,
+  required = false,
   className = "",
-  style = {},
   ...props
 }) {
   return (
@@ -19,7 +19,7 @@ export default function Textarea({
       {label && (
         <label
           className="block text-xs uppercase tracking-widest text-gray-500 mb-1.5"
-          style={{ fontFamily: "system-ui,sans-serif", ...style }}
+          style={{ fontFamily: "system-ui,sans-serif" }}
         >
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
@@ -38,7 +38,7 @@ export default function Textarea({
           disabled:bg-gray-100
           ${error ? "border-red-500" : ""}
           ${className}`}
-        style={style}
+        {...(register ? register(name) : {})}
         {...props}
       />
 

@@ -4,18 +4,16 @@ export default function TextInput({
   label,
   name,
   type = "text",
-  value,
-  onChange,
   placeholder,
   error,
   required = false,
   disabled = false,
-  children,
+  register,
   className = "",
   ...props
 }) {
   return (
-    <div>
+    <div className="flex flex-col gap-1 w-full">
       {label && (
         <label
           className="block text-xs uppercase tracking-widest text-gray-500 mb-1.5"
@@ -29,23 +27,18 @@ export default function TextInput({
       <input
         type={type}
         name={name}
-        value={value || ""}
-        onChange={onChange}
         placeholder={placeholder}
         disabled={disabled}
         className={`w-full border border-gray-300 rounded-md px-3 py-2 text-sm
-        focus:outline-none focus:ring-2 focus:ring-blue-500
-        disabled:bg-gray-100
-        ${error ? "border-red-500" : ""}
-        ${className}`}
+          focus:outline-none focus:ring-2 focus:ring-blue-500
+          disabled:bg-gray-100
+          ${error ? "border-red-500" : ""}
+          ${className}`}
+        {...(register ? register(name) : {})}
         {...props}
       />
 
-      {children}
-
-      {error && (
-        <p className="text-xs text-red-500 mt-1">{error}</p>
-      )}
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
     </div>
   );
 }

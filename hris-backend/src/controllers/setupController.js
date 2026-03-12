@@ -1,6 +1,6 @@
 "use strict";
 
-const User = require("../models/core/user");
+const { Employee, HrisUser } = require("../models");
 const { sequelize } = require("../config/database");
 const bcrypt = require("bcrypt");
 const CompanyProfile = require("../models/company/profile");
@@ -10,7 +10,7 @@ const CompanyProfile = require("../models/company/profile");
 // ─────────────────────────────────────────────
 exports.getSetupStatus = async (req, res, next) => {
   try {
-    const admin = await User.findOne({
+    const admin = await HrisUser.findOne({
       where: { role: "super_admin" },
     });
 
@@ -31,8 +31,8 @@ exports.createSetup = async (req, res, next) => {
   try {
     const { company, admin } = req.body;
 
-    // 1️⃣ Check if setup already exists
-    const existingAdmin = await User.findOne({
+    // 1️⃣ Check if setup already done
+    const existingAdmin = await HrisUser.findOne({
       where: { role: "super_admin" },
     });
 
@@ -43,23 +43,38 @@ exports.createSetup = async (req, res, next) => {
       });
     }
 
-    // 2️⃣ Hash the password before saving
+    // 2️⃣ Hash password
     const hashedPassword = await bcrypt.hash(admin.password, 10);
 
-    // 3️⃣ Create the super admin with full required fields
-    const newAdmin = await User.create(
+    // 3️⃣ Create employee
+    const employee = await Employee.create(
       {
+        employee_code: "EMP-0001",
         first_name: admin.firstName,
         last_name: admin.lastName,
-        work_email: admin.email, // updated column name
+        email: admin.email,
+        role_title: "Super Admin",
+        employment_type: "full_time",
+        hire_date: new Date(),
         password_hash: hashedPassword,
-        role: "super_admin",
         is_active: true,
+        must_change_password: false,
       },
       { transaction: t },
     );
 
-    // 4️⃣ Create company profile
+    // 4️⃣ Give HRIS access
+    const hrisUser = await HrisUser.create(
+      {
+        employee_id: employee.id,
+        role: "super_admin",
+        is_active: true,
+        granted_at: new Date(),
+      },
+      { transaction: t },
+    );
+
+    // 5️⃣ Create company profile
     const newCompany = await CompanyProfile.create(
       {
         company_name: company.companyName,
@@ -73,14 +88,16 @@ exports.createSetup = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: "Setup complete",
+      message: "Initial setup completed successfully",
       data: {
-        admin: newAdmin,
+        employee,
+        role: hrisUser,
         company: newCompany,
       },
     });
   } catch (err) {
     await t.rollback();
+    console.error("Setup error:", err);
     next(err);
   }
 };

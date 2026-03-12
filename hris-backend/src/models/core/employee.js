@@ -71,9 +71,42 @@ const Employee = sequelize.define(
 
     end_date: DataTypes.DATEONLY,
 
+    password_hash: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+
+    last_login_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+
+    is_active: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
+
+    must_change_password: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
+
+    department_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: "departments",
+        key: "id",
+      },
+    },
+
     manager_id: {
       type: DataTypes.UUID,
-      allowNull: true, // now optional
+      allowNull: true,
+      references: {
+        model: "employees",
+        key: "id",
+      },
     },
   },
   {

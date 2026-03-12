@@ -15,50 +15,48 @@ export default function SignInView({ onLogin, onForgotPassword }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit() {
-    setError("");
+async function handleSubmit() {
+  setError("");
 
-    if (!email.trim() || !password) {
-      setError("Please enter your email and password.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const response = await loginUser(email, password);
-      const user = response.data.user;
-
-      // Combine first_name + last_name if name is missing
-      const fullName =
-        user.name || `${user.first_name || ""} ${user.last_name || ""}`.trim();
-
-      // Save auth state in localStorage
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id: user.id,
-          name: fullName,
-          email: user.email,
-          role: user.role,
-          dept: user.dept || "N/A",
-          unreadNotifications: user.unreadNotifications || 0,
-        }),
-      );
-
-      onLogin(user); // optional: update parent state
-      navigate("/dashboard", { replace: true });
-    } catch (err) {
-      console.error(err);
-      setError(
-        err.response?.data?.message ||
-          "Invalid email or password / server error",
-      );
-    } finally {
-      setLoading(false);
-    }
+  if (!email.trim() || !password) {
+    setError("Please enter your email and password.");
+    return;
   }
+
+  try {
+    setLoading(true);
+
+    const data = await loginUser(email, password);
+
+    const user = data.user;
+
+    const fullName =
+      `${user.first_name || ""} ${user.last_name || ""}`.trim();
+
+    localStorage.setItem("isAuthenticated", "true");
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        id: user.id,
+        name: fullName,
+        email: user.email,
+        role: user.role,
+        dept: user.dept || "N/A",
+        unreadNotifications: user.unreadNotifications || 0,
+      })
+    );
+
+    onLogin(user);
+
+    navigate("/dashboard", { replace: true });
+
+  } catch (err) {
+    setError(err.message || "Invalid email or password");
+  } finally {
+    setLoading(false);
+  }
+}
 
   return (
     <div className="space-y-6">

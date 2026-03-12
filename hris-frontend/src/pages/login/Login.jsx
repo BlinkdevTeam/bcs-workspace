@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "../../context/AuthContext"; 
 
 import SignInView from "./components/SignInView";
 import ForgotPasswordView from "./components/ForgotPasswordView";
@@ -8,11 +9,11 @@ import LoggedInView from "./components/LoggedInView";
 // ── LOGIN PAGE ROOT ───────────────────────────────────────────────────────────
 export default function LoginPage() {
   // view: "signin" | "forgot" | "set-password-invite" | "set-password-reset" | "logged-in"
-  const [view,    setView]    = useState("signin");
-  const [authedUser, setAuthedUser] = useState(null);
+  const [view, setView] = useState("signin");
+  const { login } = useAuth();
 
   function handleLogin(user) {
-    setAuthedUser(user);
+    login(user);
     setView("logged-in");
   }
 
@@ -75,8 +76,8 @@ export default function LoginPage() {
           {view === "set-password-reset" && (
             <SetPasswordView mode="reset" onComplete={() => setView("signin")}/>
           )}
-          {view === "logged-in" && authedUser && (
-            <LoggedInView user={authedUser} onLogout={() => { setAuthedUser(null); setView("signin"); }}/>
+           {view === "logged-in" && (
+            <LoggedInView onLogout={() => { setView("signin"); login(null); }} />
           )}
         </div>
       </div>

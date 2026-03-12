@@ -2,20 +2,22 @@ import React from "react";
 
 export default function Toggle({
   label,
+  name,
   checked,
   onChange,
+  register,
   disabled = false,
   error,
-  className = "",
-  style = {},
   required = false,
+  className = "",
+  ...props
 }) {
   return (
     <div className="flex flex-col gap-1 w-full">
       {label && (
         <label
           className="block text-xs uppercase tracking-widest text-gray-500 mb-1.5"
-          style={{ fontFamily: "system-ui,sans-serif", ...style }}
+          style={{ fontFamily: "system-ui,sans-serif" }}
         >
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
@@ -25,10 +27,13 @@ export default function Toggle({
       <div className="relative">
         <input
           type="checkbox"
+          name={name}
           checked={checked}
           onChange={(e) => onChange?.(e.target.checked)}
           disabled={disabled}
           className="sr-only"
+          {...(register ? register(name) : {})}
+          {...props}
         />
 
         <div

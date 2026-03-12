@@ -1,53 +1,92 @@
 "use strict";
 
 const bcrypt = require("bcrypt");
-const User = require("../models/core/user");
+const { Employee, HrisUser } = require("../models");
 
+// Login controller
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
-    // find user by work_email (not the old 'email' column)
-    const user = await User.findOne({
-      where: { work_email: email }, // updated column
+    if (!email || !password) {
+      return res
+        .status(400)
+        .json({ message: "Email and password are required" });
+    }
+
+    email = email.toLowerCase().trim();
+
+    // Find employee
+    const employee = await Employee.findOne({
+      where: { email, is_active: true },
     });
 
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
+    if (!employee) {
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // compare password with hash
-    const validPassword = await bcrypt.compare(password, user.password_hash);
-
+    // Validate password
+    const validPassword = await bcrypt.compare(
+      password,
+      employee.password_hash,
+    );
     if (!validPassword) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // optionally update last login timestamp
-    user.last_login_at = new Date();
-    await user.save();
+    // Check HRIS access
+    const hrisUser = await HrisUser.findOne({
+      where: { employee_id: employee.id, is_active: true },
+    });
 
-    return res.json({
+    if (!hrisUser) {
+      return res
+        .status(403)
+        .json({ message: "User does not have HRIS access" });
+    }
+
+    // Update last login
+    await employee.update({ last_login_at: new Date() });
+
+    // Generate dummy accessToken (replace with JWT in production)
+    const accessToken = "dummy-access-token";
+
+    res.json({
       success: true,
+      accessToken,
       user: {
-        id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        work_email: user.work_email, // use work_email
-        role: user.role,
+        id: employee.id,
+        first_name: employee.first_name,
+        last_name: employee.last_name,
+        email: employee.email,
+        role: hrisUser.role,
+        dept: employee.department_id,
+        unreadNotifications: 0,
       },
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Server error during login" });
+  }
+};
+
+// Refresh token controller
+exports.refresh = async (req, res) => {
+  try {
+    // Dummy refresh logic: in production, validate httpOnly cookie and issue new token
+    const dummyUser = {
+      id: "user-id",
+      first_name: "John",
+      last_name: "Doe",
+      email: "john@example.com",
+      role: "admin",
+      dept: "Engineering",
+      unreadNotifications: 0,
+    };
+
+    res.json({ accessToken: "dummy-access-token", user: dummyUser });
+  } catch (err) {
+    console.error("Refresh error:", err);
+    res.status(401).json({ message: "Invalid refresh token" });
   }
 };
