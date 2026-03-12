@@ -5,6 +5,7 @@ require("dotenv").config();
 const app            = require("./app");
 const { connectDB }  = require("./config/database");
 const config         = require("./config");
+require("./models");  // ← add this line
 
 const startServer = async () => {
   await connectDB();
