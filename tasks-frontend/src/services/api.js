@@ -1,7 +1,8 @@
 import axios from "axios";
+import store from "../store/store";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: "http://localhost:5001/api",
   withCredentials: true, // required for httpOnly cookies (refresh token)
   headers: {
     "Content-Type": "application/json",

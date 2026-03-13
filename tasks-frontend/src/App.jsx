@@ -1,7 +1,10 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
+import api from "./services/api";
 
 function App() {
+  api.get("/health").then((res) => console.log(res.data));
+  
   return (
     <BrowserRouter>
       <Routes>

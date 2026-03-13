@@ -10,8 +10,16 @@ const notFound     = require("./middleware/notFound");
  
 const app = express();
  
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",  // hris-frontend
+      "http://localhost:5174",  // tasks-frontend
+    ],
+    credentials: true,
+  })
+);
 app.use(helmet());
-app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
