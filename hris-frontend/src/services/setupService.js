@@ -9,3 +9,12 @@ import api from "./api";
 export const submitInitialSetup = (company, admin) => {
   return api.post("/setup", { company, admin });
 };
+
+/**
+ * Checks if a super admin already exists
+ * @returns Promise<{ exists: boolean }>
+ */
+export const checkSuperAdmin = async () => {
+  const res = await api.get("api/setup/check-super-admin");
+  return res.data; // { exists: true/false }
+};

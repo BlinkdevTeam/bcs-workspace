@@ -1,57 +1,13 @@
 import { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { EmptyState, Card, Badge } from "../../components/ui";
 import { getDashboardStats } from "../../services/statsService";
-
-// const recentActivity = [
-//   {
-//     name: "Sara Okafor",
-//     action: "Joined Engineering",
-//     time: "2h ago",
-//     avatar: "SO",
-//     bg: "#ffffff",
-//     fg: "#000000",
-//   },
-//   {
-//     name: "Marcus Chen",
-//     action: "Requested PTO · Dec 24–27",
-//     time: "4h ago",
-//     avatar: "MC",
-//     bg: "#555555",
-//     fg: "#ffffff",
-//   },
-//   {
-//     name: "Priya Nair",
-//     action: "Completed onboarding",
-//     time: "6h ago",
-//     avatar: "PN",
-//     bg: "#222222",
-//     fg: "#ffffff",
-//   },
-//   {
-//     name: "James Kowalski",
-//     action: "Performance review due",
-//     time: "1d ago",
-//     avatar: "JK",
-//     bg: "#888888",
-//     fg: "#000000",
-//   },
-//   {
-//     name: "Leila Farouk",
-//     action: "Promoted to Senior PM",
-//     time: "2d ago",
-//     avatar: "LF",
-//     bg: "#ffffff",
-//     fg: "#000000",
-//   },
-// ];
 
 const upcomingEvents = [
   { label: "Q4 Performance Reviews", date: "Feb 25", tag: "Reviews", color: "yellow" },
   { label: "Payroll cutoff", date: "Mar 1", tag: "Payroll", color: "green" },
   { label: "Benefits enrollment ends", date: "Mar 5", tag: "Benefits", color: "blue" },
 ];
-
-// const upcomingEvents = [];
 
 const recentActivity = [];
 
@@ -71,18 +27,21 @@ const quickActions = [
 ];
 
 export default function Dashboard() {
-  const [currentUser] = useState(() => {
-    try {
-      const stored = localStorage.getItem("user");
-      return stored ? JSON.parse(stored) : { name: "User" };
-    } catch {
-      return { name: "User" };
-    }
-  });
+
+  /* ---------------- Redux User ---------------- */
+
+  const user = useSelector((state) => state.auth.user);
+
+  const currentUser = user
+    ? {
+        name: `${user.first_name || ""} ${user.last_name || ""}`.trim(),
+      }
+    : { name: "User" };
+
+  /* ---------------- State ---------------- */
 
   const [stats, setStats] = useState([]);
-  const [isLoading, setIsLoading] = useState(true); // <-- loading state
-
+  const [isLoading, setIsLoading] = useState(true);
   const [currentDateTime, setCurrentDateTime] = useState("");
 
   /* ---------------- Date / Time ---------------- */
@@ -113,13 +72,15 @@ export default function Dashboard() {
 
   /* ---------------- Fetch Dashboard Stats ---------------- */
 
-  /* ---------------- Fetch Dashboard Stats ---------------- */
   useEffect(() => {
     async function fetchStats() {
       try {
         setIsLoading(true);
+
         await new Promise((res) => setTimeout(res, 1500)); // simulate network delay
+
         const data = await getDashboardStats();
+
         setStats(data);
       } catch (err) {
         console.error("Failed to fetch stats", err);
@@ -127,6 +88,7 @@ export default function Dashboard() {
         setIsLoading(false);
       }
     }
+
     fetchStats();
   }, []);
 
@@ -136,6 +98,7 @@ export default function Dashboard() {
       style={{ fontFamily: "'Georgia', serif", backgroundColor: "#000000" }}
     >
       <div className="px-8 py-8 max-w-7xl mx-auto">
+
         {/* Header */}
 
         <div className="flex items-start justify-between mb-10">
@@ -189,6 +152,7 @@ export default function Dashboard() {
                 <Card key={s.label} className="p-5">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-2xl">{s.icon}</span>
+
                     <span
                       className="text-xs px-2 py-0.5 rounded-full font-medium"
                       style={{
@@ -200,9 +164,11 @@ export default function Dashboard() {
                       {s.positive ? "▲" : "▼"} {s.change}
                     </span>
                   </div>
+
                   <p className="text-3xl font-light text-white mb-1">
                     {s.value}
                   </p>
+
                   <p
                     className="text-gray-500 text-sm"
                     style={{ fontFamily: "system-ui, sans-serif" }}
@@ -214,7 +180,9 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-3 gap-6">
+
           {/* Activity Feed */}
+
           <div
             className="col-span-2 rounded-lg p-6"
             style={{ backgroundColor: "#0d0d0d", border: "1px solid #222222" }}
@@ -223,6 +191,7 @@ export default function Dashboard() {
               <h2 className="text-lg font-normal text-white">
                 Recent Activity
               </h2>
+
               <button
                 className="text-sm text-gray-400 hover:text-white transition-colors"
                 style={{ fontFamily: "system-ui, sans-serif" }}
@@ -258,12 +227,14 @@ export default function Dashboard() {
                     >
                       {item.avatar}
                     </div>
+
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-medium truncate">
                         {item.name}
                       </p>
                       <p className="text-gray-500 text-sm">{item.action}</p>
                     </div>
+
                     <span className="text-gray-600 text-xs whitespace-nowrap">
                       {item.time}
                     </span>
@@ -274,8 +245,11 @@ export default function Dashboard() {
           </div>
 
           {/* Right Column */}
+
           <div className="space-y-6">
+
             {/* Departments */}
+
             <div
               className="rounded-lg p-6"
               style={{
@@ -286,6 +260,7 @@ export default function Dashboard() {
               <h2 className="text-lg font-normal text-white mb-5">
                 Headcount by Dept.
               </h2>
+
               <div className="space-y-4">
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
@@ -307,6 +282,7 @@ export default function Dashboard() {
                         <span className="text-sm text-gray-300">{d.name}</span>
                         <span className="text-sm text-gray-500">{d.count}</span>
                       </div>
+
                       <div
                         className="h-1.5 rounded-full overflow-hidden"
                         style={{ backgroundColor: "#2a2a2a" }}
@@ -326,6 +302,7 @@ export default function Dashboard() {
             </div>
 
             {/* Upcoming */}
+
             <div
               className="rounded-lg p-6"
               style={{
@@ -334,9 +311,9 @@ export default function Dashboard() {
               }}
             >
               <h2 className="text-lg font-normal text-white mb-4">Upcoming</h2>
+
               <div className="space-y-3">
                 {isLoading ? (
-                  // Skeleton for 3 upcoming events
                   Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="flex items-start gap-3">
                       <div className="h-3 w-10 rounded bg-gray-700 animate-pulse mt-1" />
@@ -346,8 +323,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                   ))
-                ) : upcomingEvents && upcomingEvents.length > 0 ? (
-                  // Render events if available
+                ) : upcomingEvents.length > 0 ? (
                   upcomingEvents.map((ev, i) => (
                     <div key={i} className="flex items-start gap-3">
                       <span
@@ -356,6 +332,7 @@ export default function Dashboard() {
                       >
                         {ev.date}
                       </span>
+
                       <div>
                         <p className="text-gray-200 text-sm">{ev.label}</p>
                         <Badge color={ev.color || "gray"}>{ev.tag}</Badge>
@@ -363,7 +340,6 @@ export default function Dashboard() {
                     </div>
                   ))
                 ) : (
-                  // Empty state when no upcoming events
                   <EmptyState
                     title="No Upcoming Events"
                     description="You have no scheduled events at the moment."
@@ -371,6 +347,7 @@ export default function Dashboard() {
                   />
                 )}
               </div>
+
             </div>
           </div>
         </div>

@@ -1,30 +1,30 @@
-import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
-import { PageLoader } from "./ui";
-import useAuth from "../hooks/useAuth";
+import PageLoader from "./ui/PageLoader";
+import useSetupStatus from "../hooks/useSetupStatus";
 
 export default function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useSelector(
+    (state) => state.auth
+  );
 
-  const [showLoader, setShowLoader] = useState(false);
+  const { setupComplete, checking } = useSetupStatus();
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      const timer = setTimeout(() => setShowLoader(true), 150);
-      return () => clearTimeout(timer);
-    }
-  }, [isAuthenticated]);
-
-  // Optional loader UX
-  if (!isAuthenticated && showLoader) {
-    return <PageLoader message="Checking authentication..." />;
+  // Show loader while checking auth or setup
+  if (authLoading || checking) {
+    return <PageLoader message="Checking session..." />;
   }
 
-  // Redirect if not logged in
+  // If system not initialized
+  if (!setupComplete) {
+    return <Navigate to="/initial-setup" replace />;
+  }
+
+  // If user not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // Authenticated
+  // Allow access
   return children;
 }

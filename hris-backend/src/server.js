@@ -22,7 +22,7 @@ app.use(cookieParser()); // <-- parse httpOnly cookies
 
 // Initial Setup (first admin creation)
 const setupRoutes = require("./routes/setupRoutes");
-app.use("/setup", setupRoutes);
+app.use("/api/setup", setupRoutes);
 
 // Authentication (login + refresh token)
 const authRoutes = require("./routes/authRoutes");

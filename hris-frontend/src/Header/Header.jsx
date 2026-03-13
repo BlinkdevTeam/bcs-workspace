@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux"; // Import Redux hooks
+import { logoutUser } from "../services/authServices";
+import { logout } from "../store/authSlice"; // Import logout action
 
 import AvatarButton from "./components/AvatarButton";
 import DropdownMenu from "./components/DropdownMenu";
@@ -16,20 +19,23 @@ const NAV_ITEMS = [
 export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
   const containerRef = useRef(null);
   const [open, setOpen] = useState(false);
 
-  const [currentUser, setCurrentUser] = useState(() => {
-    const stored = localStorage.getItem("user");
-    return stored ? JSON.parse(stored) : null;
-  });
+  // 1. Get user directly from Redux instead of local state/localStorage
+  const { user: currentUser, isAuthenticated } = useSelector((state) => state.auth);
 
-  // Redirect to dashboard if path is unknown
-  useEffect(() => {
-    if (!NAV_ITEMS.some(item => location.pathname.startsWith(item.path))) {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [location.pathname, navigate]);
+  // 2. Updated Logout to use Redux
+const handleLogout = async () => {
+  try {
+    await logoutUser();       // call backend to revoke refresh token
+    dispatch(logout());       // clear Redux state
+    navigate("/login", { replace: true });
+  } catch (err) {
+    console.error("Logout failed:", err);
+  }
+};
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -51,21 +57,19 @@ export default function Header() {
     return () => document.removeEventListener("keydown", handleKey);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    localStorage.removeItem("user");
-    setCurrentUser(null);
-    navigate("/login", { replace: true });
-  };
-
-  if (!currentUser) return null;
+  // 3. IMPORTANT: Check isAuthenticated from Redux
+  // If we don't have a user, we don't render the header.
+  if (!isAuthenticated || !currentUser) return null;
 
   const activeLabel = NAV_ITEMS.find((item) =>
     location.pathname.startsWith(item.path)
   )?.label;
 
   return (
-    <header className="border-b px-8 py-4 flex items-center justify-between flex-shrink-0" style={{ backgroundColor: "#000", borderColor: "#222" }}>
+    <header 
+      className="border-b px-8 py-4 flex items-center justify-between flex-shrink-0" 
+      style={{ backgroundColor: "#000", borderColor: "#222", zIndex: 100 }}
+    >
       <div className="flex items-center gap-10">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-sm bg-white flex items-center justify-center">

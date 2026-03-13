@@ -8,21 +8,24 @@ export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // ── Login function
   const login = (accessToken, userData) => {
     setToken(accessToken);
     setUser(userData);
     setIsAuthenticated(true);
   };
 
+  // ── Logout function
   const logout = () => {
     setToken(null);
     setUser(null);
     setIsAuthenticated(false);
   };
 
+  // ── Refresh token
   const refreshToken = async () => {
     try {
-      const data = await refreshAccessToken(); // calls backend /auth/refresh
+      const data = await refreshAccessToken(); // backend /auth/refresh
       setToken(data.accessToken);
       setUser(data.user);
       setIsAuthenticated(true);
@@ -34,6 +37,7 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // ── Initialize auth on mount
   useEffect(() => {
     const initializeAuth = async () => {
       await refreshToken();
