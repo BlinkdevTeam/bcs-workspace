@@ -26,7 +26,7 @@ export default function AvatarButton({ user, onClick, isOpen }) {
             fontFamily: "system-ui, sans-serif",
           }}
         >
-          {initials(user.name || "User")}
+          {initials(user.first_name || "User")}
         </div>
 
         {/* Online indicator */}
@@ -39,10 +39,10 @@ export default function AvatarButton({ user, onClick, isOpen }) {
       {/* Name + role — visible on wider nav */}
       <div className="text-left hidden sm:block">
         <p
-          className="text-xs text-white leading-none mb-0.5"
+          className="text-xs text-white leading-none mb-0.5 uppercase font-bold"
           style={{ fontFamily: "system-ui, sans-serif" }}
         >
-          {(user.name?.split(" ")[0]) || "User"}
+          {(user.first_name?.split(" ")[0]) || "User"}
         </p>
         <p
           className="text-xs leading-none"

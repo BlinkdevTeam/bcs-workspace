@@ -1,27 +1,60 @@
+/**
+ * SkeletonLoader Component
+ *
+ * Usage:
+ * <SkeletonLoader variant="text" width="200px" />
+ * <SkeletonLoader variant="avatar" />
+ * <SkeletonLoader variant="block" height="100px" />
+ * <SkeletonLoader variant="table" count={5} />
+ */
+
+import React from "react";
+
 export default function SkeletonLoader({
-  count = 1,
   variant = "block",
-  width = "w-full",
-  height = "h-4",
+  width = "100%",
+  height = "16px",
+  count = 1,
   className = "",
 }) {
-  const getClasses = () => {
-    switch (variant) {
-      case "text":
-        return `${width} ${height} rounded-sm`;
-      case "avatar":
-        return "w-10 h-10 rounded-full";
-      case "table":
-        return `${width} ${height} mb-2 rounded`;
-      default:
-        return `${width} ${height} rounded-lg`;
-    }
+  const base = "animate-pulse bg-gray-300";
+
+  const style = {
+    width,
+    height,
   };
+
+  if (variant === "avatar") {
+    return (
+      <div
+        className={`${base} rounded-full ${className}`}
+        style={{ width: width || "40px", height: height || "40px" }}
+      />
+    );
+  }
+
+  if (variant === "table") {
+    return (
+      <div className="space-y-2">
+        {Array.from({ length: count }).map((_, i) => (
+          <div key={i} className="flex gap-3">
+            <div className={`${base} h-4 w-1/4 rounded`} />
+            <div className={`${base} h-4 w-1/3 rounded`} />
+            <div className={`${base} h-4 w-1/6 rounded`} />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className={`animate-pulse bg-gray-800 ${getClasses()} ${className}`} />
+        <div
+          key={i}
+          className={`${base} rounded ${className}`}
+          style={style}
+        />
       ))}
     </>
   );

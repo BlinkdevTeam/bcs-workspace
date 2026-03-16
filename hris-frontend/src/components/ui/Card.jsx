@@ -1,21 +1,22 @@
-import React from "react";
-
 /**
- * Card component for dashboard sections
- * Props:
- * - children: content inside the card
- * - className: additional classes
- * - style: inline styles
+ * Card Component
+ *
+ * Usage:
+ * <Card>
+ *   <h2>Dashboard Section</h2>
+ * </Card>
  */
-export default function Card({ children, className = "", style = {} }) {
+
+import React from "react";
+import clsx from "clsx";
+
+export default function Card({ children, className = "" }) {
   return (
     <div
-      className={`rounded-lg p-6 ${className}`}
-      style={{
-        backgroundColor: "#0d0d0d",
-        border: "1px solid #222222",
-        ...style,
-      }}
+      className={clsx(
+        "bg-white rounded-lg shadow p-6",
+        className
+      )}
     >
       {children}
     </div>

@@ -15,6 +15,6 @@ export const submitInitialSetup = (company, admin) => {
  * @returns Promise<{ exists: boolean }>
  */
 export const checkSuperAdmin = async () => {
-  const res = await api.get("api/setup/check-super-admin");
+  const res = await api.get("/api/setup/check-super-admin");
   return res.data; // { exists: true/false }
 };

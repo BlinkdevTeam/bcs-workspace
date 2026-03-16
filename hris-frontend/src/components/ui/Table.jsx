@@ -6,55 +6,47 @@
  *   columns={[
  *     { key: "name", label: "Name", sortable: true },
  *     { key: "email", label: "Email", sortable: true },
- *     { key: "role", label: "Role" },
- *     {
- *       label: "Actions",
- *       render: (row) => <button>Edit</button>
- *     }
+ *     { label: "Actions", render: (row) => <button>Edit</button> }
  *   ]}
- *   data={users}
+ *   rows={users}
  * />
  */
 
 import React, { useState, useMemo } from "react";
 
-export default function Table({ columns = [], data = [], className = "" }) {
+export default function Table({ columns = [], rows = [], className = "" }) {
   const [sortKey, setSortKey] = useState(null);
-  const [sortDirection, setSortDirection] = useState("asc");
+  const [direction, setDirection] = useState("asc");
 
-  // Handle sorting
   const handleSort = (key) => {
     if (!key) return;
 
     if (sortKey === key) {
-      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+      setDirection((prev) => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortKey(key);
-      setSortDirection("asc");
+      setDirection("asc");
     }
   };
 
-  // Sorted data
-  const sortedData = useMemo(() => {
-    if (!sortKey) return data;
+  const sortedRows = useMemo(() => {
+    if (!sortKey) return rows;
 
-    return [...data].sort((a, b) => {
-      const aValue = a[sortKey];
-      const bValue = b[sortKey];
+    return [...rows].sort((a, b) => {
+      if (a[sortKey] === b[sortKey]) return 0;
 
-      if (aValue === bValue) return 0;
-
-      if (sortDirection === "asc") {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
+      if (direction === "asc") {
+        return a[sortKey] > b[sortKey] ? 1 : -1;
       }
+
+      return a[sortKey] < b[sortKey] ? 1 : -1;
     });
-  }, [data, sortKey, sortDirection]);
+  }, [rows, sortKey, direction]);
 
   return (
     <div className={`overflow-x-auto ${className}`}>
       <table className="min-w-full border-collapse">
+
         {/* HEADER */}
         <thead>
           <tr>
@@ -62,19 +54,16 @@ export default function Table({ columns = [], data = [], className = "" }) {
               <th
                 key={col.key || col.label}
                 onClick={() => col.sortable && handleSort(col.key)}
-                className={`px-4 py-2 border-b border-gray-700 text-sm font-medium text-gray-400 text-left ${
-                  col.sortable
-                    ? "cursor-pointer hover:text-white select-none"
-                    : ""
+                className={`px-4 py-2 border-b text-left text-sm font-medium text-gray-500 ${
+                  col.sortable ? "cursor-pointer select-none" : ""
                 }`}
               >
                 <div className="flex items-center gap-1">
                   {col.label}
 
-                  {/* Sort Indicator */}
                   {col.sortable && sortKey === col.key && (
                     <span className="text-xs">
-                      {sortDirection === "asc" ? "▲" : "▼"}
+                      {direction === "asc" ? "▲" : "▼"}
                     </span>
                   )}
                 </div>
@@ -85,22 +74,22 @@ export default function Table({ columns = [], data = [], className = "" }) {
 
         {/* BODY */}
         <tbody>
-          {sortedData.length === 0 ? (
+          {sortedRows.length === 0 ? (
             <tr>
               <td
                 colSpan={columns.length}
-                className="text-center text-gray-500 py-4"
+                className="text-center py-4 text-gray-400"
               >
                 No data available
               </td>
             </tr>
           ) : (
-            sortedData.map((row, i) => (
-              <tr key={i} className="hover:bg-gray-900">
+            sortedRows.map((row, i) => (
+              <tr key={i} className="hover:bg-gray-50">
                 {columns.map((col) => (
                   <td
                     key={col.key || col.label}
-                    className="px-4 py-2 text-sm text-white border-b border-gray-800"
+                    className="px-4 py-2 border-b text-sm"
                   >
                     {col.render ? col.render(row) : row[col.key]}
                   </td>
@@ -109,6 +98,7 @@ export default function Table({ columns = [], data = [], className = "" }) {
             ))
           )}
         </tbody>
+
       </table>
     </div>
   );
