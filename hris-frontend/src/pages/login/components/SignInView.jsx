@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux"; // Import Redux hooks
-import { loginUserAction } from "../../../store/authSlice"; // Import the Thunk action
+import { useDispatch, useSelector } from "react-redux";
+import { loginUserAction } from "../../../store/authSlice";
 import { SignInBtn } from "../../../components/ui";
 import InputField from "./InputField";
 import EyeIcon from "./EyeIcon";
@@ -10,7 +10,6 @@ export default function SignInView({ onForgotPassword }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // Get loading and error states directly from Redux
   const { loading, error: authError } = useSelector((state) => state.auth);
 
   const [email, setEmail] = useState("");
@@ -18,29 +17,47 @@ export default function SignInView({ onForgotPassword }) {
   const [showPass, setShowPass] = useState(false);
   const [localError, setLocalError] = useState("");
 
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+
+  useEffect(() => {
+    let timer;
+    if (lockoutSeconds > 0) {
+      timer = setInterval(() => {
+        setLockoutSeconds((s) => Math.max(s - 1, 0));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [lockoutSeconds]);
+
   async function handleSubmit() {
     setLocalError("");
 
-    // Basic client-side validation
     if (!email.trim() || !password) {
       setLocalError("Please enter your email and password.");
       return;
     }
 
-    // Dispatch the Redux action
-    // .unwrap() allows us to handle the promise result directly if needed, 
-    // but the slice already handles state updates.
-    const resultAction = await dispatch(loginUserAction({ email, password }));
+    try {
+      const resultAction = await dispatch(
+        loginUserAction({ email, password })
+      );
 
-    if (loginUserAction.fulfilled.match(resultAction)) {
-      // If the login was successful, Redux state is updated.
-      // We can now safely navigate to the dashboard.
-      navigate("/dashboard", { replace: true });
+      if (loginUserAction.fulfilled.match(resultAction)) {
+        navigate("/dashboard", { replace: true });
+      } else if (
+        loginUserAction.rejected.match(resultAction) &&
+        resultAction.payload?.lockout_seconds
+      ) {
+        // Backend tells us user is locked
+        setLockoutSeconds(resultAction.payload.lockout_seconds);
+      }
+    } catch (err) {
+      console.error("Login failed:", err);
     }
   }
 
-  // Combine local validation errors with backend errors from Redux
   const displayError = localError || authError;
+  const isLocked = lockoutSeconds > 0;
 
   return (
     <div className="space-y-6">
@@ -48,7 +65,7 @@ export default function SignInView({ onForgotPassword }) {
         <h1 className="text-2xl font-normal text-white mb-1" style={{ letterSpacing: "-0.02em" }}>
           Sign in
         </h1>
-        <p className="text-sm text-gray-600" style={{ fontFamily: "system-ui,sans-serif" }}>
+        <p className="text-sm text-gray-600">
           Use your company email to access the HRIS.
         </p>
       </div>
@@ -58,10 +75,7 @@ export default function SignInView({ onForgotPassword }) {
           label="Email address"
           type="email"
           value={email}
-          onChange={(v) => { 
-            setEmail(v); 
-            setLocalError(""); 
-          }}
+          onChange={(v) => { setEmail(v); setLocalError(""); }}
           placeholder="you@company.com"
           autoFocus
         />
@@ -69,22 +83,20 @@ export default function SignInView({ onForgotPassword }) {
           label="Password"
           type={showPass ? "text" : "password"}
           value={password}
-          onChange={(v) => { 
-            setPassword(v); 
-            setLocalError(""); 
-          }}
+          onChange={(v) => { setPassword(v); setLocalError(""); }}
           placeholder="Enter your password"
-          rightSlot={
-            <EyeIcon 
-              show={showPass} 
-              onToggle={() => setShowPass((p) => !p)} 
-            />
-          }
+          rightSlot={<EyeIcon show={showPass} onToggle={() => setShowPass((p) => !p)} />}
         />
 
         {displayError && (
-          <p className="text-xs" style={{ fontFamily: "system-ui,sans-serif", color: "#f05a5a" }}>
+          <p className="text-xs" style={{ color: "#f05a5a" }}>
             {displayError}
+          </p>
+        )}
+
+        {isLocked && (
+          <p className="text-xs text-yellow-400">
+            Too many failed attempts. Try again in {lockoutSeconds}s.
           </p>
         )}
       </div>
@@ -94,14 +106,13 @@ export default function SignInView({ onForgotPassword }) {
           type="button"
           onClick={onForgotPassword}
           className="text-xs text-gray-500 hover:text-white transition-colors"
-          style={{ fontFamily: "system-ui,sans-serif" }}
         >
           Forgot password?
         </button>
       </div>
 
-      <SignInBtn onClick={handleSubmit} disabled={loading}>
-        {loading ? "Signing in…" : "Sign In →"}
+      <SignInBtn onClick={handleSubmit} disabled={loading || isLocked}>
+        {loading ? "Signing in…" : isLocked ? `Locked (${lockoutSeconds}s)` : "Sign In →"}
       </SignInBtn>
     </div>
   );

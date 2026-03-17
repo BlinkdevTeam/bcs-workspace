@@ -175,6 +175,8 @@ export default function App() {
 
         {/* Auth Pages */}
         <Route path="/login" element={<Login />} />
+
+        <Route path="/set-password-reset" element={<Login />} />
         <Route
           path="/initial-setup"
           element={

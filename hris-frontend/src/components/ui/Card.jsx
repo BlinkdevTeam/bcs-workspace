@@ -14,7 +14,7 @@ export default function Card({ children, className = "" }) {
   return (
     <div
       className={clsx(
-        "bg-white rounded-lg shadow p-6",
+        "bg-[#0D0D0D] rounded-lg shadow p-6",
         className
       )}
     >

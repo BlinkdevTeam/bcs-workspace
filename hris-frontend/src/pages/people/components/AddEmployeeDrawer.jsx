@@ -200,13 +200,13 @@ export default function AddEmployeeDrawer({ onClose, onSave }) {
             onChange={(e) => set("phone", e.target.value)}
           />
           <div className="grid grid-cols-2 gap-4">
-            <TextInput
+            <DatePicker
               label="Date of Birth"
-              placeholder="Jan 1, 1990"
-              className={IC}
-              style={IS}
               value={form.dob}
               onChange={(e) => set("dob", e.target.value)}
+              maxDate={new Date()} // prevents future birthdates
+              className={IC}
+              style={IS}
             />
             <Select
               label="Gender"

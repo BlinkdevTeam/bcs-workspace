@@ -10,6 +10,11 @@ const PasswordResetToken = require("./core/passwordResettokens");
 const RefreshToken = require("./core/refreshTokens");
 
 // ─────────────────────────────────
+// NEW AUTH MODEL
+// ─────────────────────────────────
+const LoginAttempt = require("./core/loginAttempts"); // <- added
+
+// ─────────────────────────────────
 // PAYROLL MODELS
 // ─────────────────────────────────
 const PayrollCutoff = require("./payroll/payrollCutoff");
@@ -93,6 +98,10 @@ RefreshToken.belongsTo(Employee, {
 PasswordResetToken.belongsTo(Employee, {
   foreignKey: "employee_id",
 });
+
+// 🔹 NEW RELATIONSHIP: Employee -> LoginAttempts
+Employee.hasMany(LoginAttempt, { foreignKey: "employee_id" });
+LoginAttempt.belongsTo(Employee, { foreignKey: "employee_id" });
 
 // ─────────────────────────────────
 // PAYROLL RELATIONSHIPS
@@ -231,6 +240,7 @@ module.exports = {
   Department,
   PasswordResetToken,
   RefreshToken,
+  LoginAttempt,
 
   PayrollCutoff,
   CompensationPackage,

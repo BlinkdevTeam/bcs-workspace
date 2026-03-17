@@ -3,6 +3,11 @@
 const { DataTypes } = require("sequelize");
 const { sequelize } = require("../../config/database");
 
+// ✅ Helper function (reusable + safe)
+const getInitials = (first, last) => {
+  return `${first?.[0] || ""}${last?.[0] || ""}`.toUpperCase();
+};
+
 const Employee = sequelize.define(
   "Employee",
   {
@@ -42,11 +47,19 @@ const Employee = sequelize.define(
 
     phone: DataTypes.STRING(30),
 
-    avatar_initials: DataTypes.STRING(4),
+    // ✅ Will be auto-generated (no need from frontend)
+    avatar_initials: {
+      type: DataTypes.STRING(4),
+      allowNull: true,
+    },
 
     department_id: {
       type: DataTypes.UUID,
-      allowNull: true, // now optional
+      allowNull: true,
+      references: {
+        model: "departments",
+        key: "id",
+      },
     },
 
     role_title: {
@@ -91,15 +104,6 @@ const Employee = sequelize.define(
       defaultValue: true,
     },
 
-    department_id: {
-      type: DataTypes.UUID,
-      allowNull: true,
-      references: {
-        model: "departments",
-        key: "id",
-      },
-    },
-
     manager_id: {
       type: DataTypes.UUID,
       allowNull: true,
@@ -116,6 +120,16 @@ const Employee = sequelize.define(
     updatedAt: "updated_at",
     paranoid: true,
     deletedAt: "deleted_at",
+
+    // ✅ Centralized backend logic
+    hooks: {
+      beforeSave: (employee) => {
+        employee.avatar_initials = getInitials(
+          employee.first_name,
+          employee.last_name,
+        );
+      },
+    },
   },
 );
 

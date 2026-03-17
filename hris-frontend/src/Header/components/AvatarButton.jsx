@@ -26,7 +26,7 @@ export default function AvatarButton({ user, onClick, isOpen }) {
             fontFamily: "system-ui, sans-serif",
           }}
         >
-          {initials(user.first_name || "User")}
+          {initials(user.avatar_initials || "User")}
         </div>
 
         {/* Online indicator */}
@@ -42,7 +42,7 @@ export default function AvatarButton({ user, onClick, isOpen }) {
           className="text-xs text-white leading-none mb-0.5 uppercase font-bold"
           style={{ fontFamily: "system-ui, sans-serif" }}
         >
-          {(user.first_name?.split(" ")[0]) || "User"}
+          {(user.avatar_initials?.split(" ")[0]) || "User"}
         </p>
         <p
           className="text-xs leading-none"
