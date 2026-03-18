@@ -40,6 +40,10 @@ app.use("/api", statsRoutes);
 const employeeRoutes = require("./routes/employeeRoutes");
 app.use("/employees", employeeRoutes);
 
+// ── Departments API (added) ───────────────────────────────
+const departmentRoutes = require("./routes/departmentRoutes");
+app.use("/api/departments", departmentRoutes);
+
 // ── HEALTH CHECK (Optional but useful) ─────────────────────
 app.get("/", (req, res) => {
   res.json({

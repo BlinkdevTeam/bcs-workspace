@@ -86,6 +86,10 @@ Department.hasMany(Employee, { foreignKey: "department_id" });
 HrisUser.belongsTo(Employee, { foreignKey: "employee_id" });
 Employee.hasOne(HrisUser, { foreignKey: "employee_id" });
 
+// Add the head <-> department relationship here
+Department.belongsTo(Employee, { as: "head", foreignKey: "head_id" });
+Employee.hasMany(Department, { foreignKey: "head_id" });
+
 Employee.belongsTo(Employee, {
   as: "manager",
   foreignKey: "manager_id",

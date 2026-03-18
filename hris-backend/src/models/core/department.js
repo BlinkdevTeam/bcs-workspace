@@ -11,13 +11,11 @@ const Department = sequelize.define(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-
     name: {
       type: DataTypes.STRING(100),
       allowNull: false,
       unique: true,
     },
-
     head_id: {
       type: DataTypes.UUID,
       allowNull: true,
@@ -25,6 +23,10 @@ const Department = sequelize.define(
         model: "employees",
         key: "id",
       },
+    },
+    color: {
+      type: DataTypes.STRING(7), // e.g. "#5a9af0"
+      allowNull: true,
     },
   },
   {

@@ -684,10 +684,12 @@ const AVATAR_COLORS = [
 
 // Returns { bg, fg } for an employee's avatar
 export function getAvatarColors(id) {
-  const bg = AVATAR_COLORS[id % AVATAR_COLORS.length];
-  const lightBg = ["#fff", "#ddd", "#eee", "#ccc", "#bbb"].some(x =>
-    bg.startsWith(x.slice(0, 4))
-  );
+  const bg = AVATAR_COLORS[id % AVATAR_COLORS.length] || "#000"; // fallback
+  const lightBg =
+    bg &&
+    ["#fff", "#ddd", "#eee", "#ccc", "#bbb"].some((x) =>
+      bg.startsWith(x.slice(0, 4))
+    );
   return { bg, fg: lightBg ? "#000" : "#fff" };
 }
 
@@ -714,13 +716,16 @@ export function formatCurrency(n) {
   return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export function gc(id){ 
-    const bg=AV[id%AV.length]; 
-    return { 
-        bg, 
-        fg:["#fff","#ddd","#eee","#ccc","#bbb"].some(x=>bg.startsWith(x.slice(0,4))) ? "#000" : "#fff" 
-
-    }; 
+export function gc(id) {
+  const bg = AV[id % AV.length] || "#000"; // fallback color if undefined
+  const fg =
+    bg &&
+    ["#fff", "#ddd", "#eee", "#ccc", "#bbb"].some((x) =>
+      bg.startsWith(x.slice(0, 4))
+    )
+      ? "#000"
+      : "#fff";
+  return { bg, fg };
 }
 
 
