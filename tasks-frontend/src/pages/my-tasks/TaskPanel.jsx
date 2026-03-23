@@ -1,112 +1,66 @@
 import { useState, useRef, useEffect } from "react";
-
-const PEOPLE = [
-  { id: "KM", name: "Ken M." },
-  { id: "JD", name: "Jane D." },
-  { id: "AL", name: "Alex L." },
-];
-
-const STATUSES = [
-  { value: "todo",     label: "To Do",       color: "#555",    bg: "#1e1e1e" },
-  { value: "progress", label: "In Progress", color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
-  { value: "review",   label: "In Review",   color: "#a78bfa", bg: "rgba(167,139,250,0.1)" },
-  { value: "done",     label: "Done",        color: "#22c55e", bg: "rgba(34,197,94,0.1)" },
-];
-
-const PRIORITIES = [
-  { value: "high",   label: "High",   color: "#f97316", bg: "rgba(249,115,22,0.1)" },
-  { value: "medium", label: "Medium", color: "#facc15", bg: "rgba(250,204,21,0.08)" },
-  { value: "low",    label: "Low",    color: "#22c55e", bg: "rgba(34,197,94,0.1)" },
-];
+import {
+  PEOPLE, STATUSES, PRIORITIES,
+  getStatus, getPriority,
+  formatDate, StackedAvatars, PeopleDropdown,
+} from "./MyTasks";
 
 const MOCK_COMMENTS = [
-  { id: 1, author: "KM", name: "Ken M.",  time: "2 hours ago", text: "This is blocked by the auth interceptor setup. Will finish after that." },
-  { id: 2, author: "JD", name: "Jane D.", time: "1 hour ago",  text: "Got it. I can help with the silent refresh part if needed." },
+  { id: 1, author: "KM", name: "Ken M.",  color: "#3b82f6", time: "2 hours ago", text: "This is blocked by the auth interceptor setup. Will finish after that." },
+  { id: 2, author: "JD", name: "Jane D.", color: "#a78bfa", time: "1 hour ago",  text: "Got it. I can help with the silent refresh part if needed." },
 ];
-
-const getStatus   = (v) => STATUSES.find((s) => s.value === v)   ?? STATUSES[0];
-const getPriority = (v) => PRIORITIES.find((p) => p.value === v) ?? PRIORITIES[1];
-
-function formatDate(dateStr) {
-  if (!dateStr) return "";
-  const today    = new Date(); today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-  const d        = new Date(dateStr);
-  if (d < today)                                    return "Overdue";
-  if (d.toDateString() === today.toDateString())    return "Today";
-  if (d.toDateString() === tomorrow.toDateString()) return "Tomorrow";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
 
 // ── TaskPanel ─────────────────────────────────────────────────────────────────
 export default function TaskPanel({ task, onClose, onUpdate }) {
-  const [comments, setComments]     = useState(MOCK_COMMENTS);
+  const [comments, setComments]       = useState(MOCK_COMMENTS);
   const [commentText, setCommentText] = useState("");
-  const [activeTab, setActiveTab]   = useState("description"); // "description" | "comments"
-  const [openField, setOpenField]   = useState(null);
+  const [activeTab, setActiveTab]     = useState("description");
+  const [openField, setOpenField]     = useState(null);
+  const [description, setDescription] = useState(task.description || "");
+  const editorRef                     = useRef(null);
 
-  // WYSIWYG state — stored as HTML string
-  const [description, setDescription] = useState(
-    task.description || "<p>Add a description...</p>"
-  );
-  const editorRef = useRef(null);
+  useEffect(() => { setDescription(task.description || ""); }, [task.id]);
 
-  useEffect(() => {
-    // Sync description if task changes
-    setDescription(task.description || "");
-  }, [task.id]);
-
-  const execFormat = (command, value = null) => {
-    document.execCommand(command, false, value);
-    editorRef.current?.focus();
-  };
+  const execFormat = (cmd, val = null) => { document.execCommand(cmd, false, val); editorRef.current?.focus(); };
 
   const submitComment = () => {
     if (!commentText.trim()) return;
-    setComments((prev) => [
-      ...prev,
-      { id: Date.now(), author: "KM", name: "Ken M.", time: "Just now", text: commentText.trim() },
-    ]);
+    setComments((prev) => [...prev, { id: Date.now(), author: "KM", name: "Ken M.", color: "#3b82f6", time: "Just now", text: commentText.trim() }]);
     setCommentText("");
   };
 
   const status   = getStatus(task.status);
   const priority = getPriority(task.priority);
-  const person   = PEOPLE.find((p) => p.id === task.person);
 
   return (
-    <div style={s.panel}>
-      {/* ── Panel header ── */}
+    <div style={s.panel} onClick={() => setOpenField(null)}>
+
+      {/* Header */}
       <div style={s.header}>
         <div style={s.headerLeft}>
-          <span style={{ ...s.statusPill, color: status.color, background: status.bg }}>
-            {status.label}
-          </span>
+          <span style={{ ...s.statusPill, color: status.color, background: status.bg }}>{status.label}</span>
           <span style={s.projectName}>{task.project}</span>
         </div>
         <div style={s.closeBtn} onClick={onClose}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
         </div>
       </div>
 
-      {/* ── Task name ── */}
+      {/* Task title */}
       <div
-        style={s.taskTitle}
-        contentEditable
-        suppressContentEditableWarning
+        contentEditable suppressContentEditableWarning style={s.taskTitle}
         onBlur={(e) => onUpdate({ name: e.currentTarget.textContent.trim() })}
         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
       >
         {task.name}
       </div>
 
-      {/* ── Meta fields ── */}
-      <div style={s.metaGrid}>
-        <MetaRow label="Status" onClick={() => setOpenField(openField === "status" ? null : "status")}>
+      {/* Meta fields */}
+      <div style={s.metaGrid} onClick={(e) => e.stopPropagation()}>
+
+        <MetaRow label="Status">
           <div style={{ position: "relative" }}>
-            <span style={{ ...s.pill, color: status.color, background: status.bg, cursor: "pointer" }}>
+            <span style={{ ...s.pill, color: status.color, background: status.bg, cursor: "pointer" }} onClick={() => setOpenField(openField === "status" ? null : "status")}>
               {status.label}
             </span>
             {openField === "status" && (
@@ -121,9 +75,9 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
           </div>
         </MetaRow>
 
-        <MetaRow label="Priority" onClick={() => setOpenField(openField === "priority" ? null : "priority")}>
+        <MetaRow label="Priority">
           <div style={{ position: "relative" }}>
-            <span style={{ ...s.pill, color: priority.color, background: priority.bg, cursor: "pointer" }}>
+            <span style={{ ...s.pill, color: priority.color, background: priority.bg, cursor: "pointer" }} onClick={() => setOpenField(openField === "priority" ? null : "priority")}>
               {priority.label}
             </span>
             {openField === "priority" && (
@@ -138,40 +92,36 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
           </div>
         </MetaRow>
 
-        <MetaRow label="Person" onClick={() => setOpenField(openField === "person" ? null : "person")}>
+        {/* People — multi-select */}
+        <MetaRow label="People">
           <div style={{ position: "relative" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer" }}>
-              <div style={s.avatar}>{task.person}</div>
-              <span style={{ fontSize: 12, color: "#888" }}>{person?.name ?? task.person}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setOpenField(openField === "people" ? null : "people")}>
+              <StackedAvatars peopleIds={task.people} max={5} size={24} />
+              <span style={{ fontSize: 12, color: "#555" }}>
+                {task.people.map((id) => PEOPLE.find((p) => p.id === id)?.name ?? id).join(", ")}
+              </span>
             </div>
-            {openField === "person" && (
-              <FieldDropdown onClose={() => setOpenField(null)}>
-                {PEOPLE.map((p) => (
-                  <div key={p.id} style={s.ddItem} onClick={() => { onUpdate({ person: p.id }); setOpenField(null); }}>
-                    <div style={s.avatar}>{p.id}</div>
-                    <span style={{ fontSize: 12, color: "#888" }}>{p.name}</span>
-                  </div>
-                ))}
-              </FieldDropdown>
+            {openField === "people" && (
+              <PeopleDropdown
+                selected={task.people}
+                onChange={(next) => onUpdate({ people: next })}
+                onClose={() => setOpenField(null)}
+              />
             )}
           </div>
         </MetaRow>
 
-        <MetaRow label="Date" onClick={() => setOpenField(openField === "date" ? null : "date")}>
+        <MetaRow label="Date">
           <div style={{ position: "relative" }}>
-            <span style={{ fontSize: 12, color: "#888", cursor: "pointer" }}>
+            <span style={{ fontSize: 12, color: "#888", cursor: "pointer" }} onClick={() => setOpenField(openField === "date" ? null : "date")}>
               {formatDate(task.due) || "No date"}
             </span>
             {openField === "date" && (
               <FieldDropdown onClose={() => setOpenField(null)} width={180}>
                 <div style={{ padding: "8px 12px" }}>
-                  <input
-                    type="date"
-                    defaultValue={task.due}
-                    style={s.dateInput}
+                  <input type="date" defaultValue={task.due} style={s.dateInput}
                     onChange={(e) => { onUpdate({ due: e.target.value }); setOpenField(null); }}
-                    onClick={(e) => e.stopPropagation()}
-                  />
+                    onClick={(e) => e.stopPropagation()} />
                 </div>
               </FieldDropdown>
             )}
@@ -181,29 +131,22 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
 
       <div style={s.divider} />
 
-      {/* ── Tabs ── */}
+      {/* Tabs */}
       <div style={s.tabs}>
         {["description", "comments"].map((tab) => (
-          <div
-            key={tab}
-            style={{ ...s.tab, ...(activeTab === tab ? s.tabActive : {}) }}
-            onClick={() => setActiveTab(tab)}
-          >
+          <div key={tab} style={{ ...s.tab, ...(activeTab === tab ? s.tabActive : {}) }} onClick={() => setActiveTab(tab)}>
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            {tab === "comments" && comments.length > 0 && (
-              <span style={s.tabBadge}>{comments.length}</span>
-            )}
+            {tab === "comments" && comments.length > 0 && <span style={s.tabBadge}>{comments.length}</span>}
           </div>
         ))}
       </div>
 
-      {/* ── Tab content ── */}
+      {/* Tab content */}
       <div style={s.tabContent}>
 
-        {/* ── Description (WYSIWYG) ── */}
+        {/* Description WYSIWYG */}
         {activeTab === "description" && (
           <div style={s.wysiwyg}>
-            {/* Toolbar */}
             <div style={s.toolbar}>
               <ToolBtn onClick={() => execFormat("bold")} title="Bold">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 4h8a4 4 0 010 8H6zM6 12h9a4 4 0 010 8H6z"/></svg>
@@ -232,39 +175,26 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
               </ToolBtn>
             </div>
-
-            {/* Editable area */}
-            <div
-              ref={editorRef}
-              contentEditable
-              suppressContentEditableWarning
-              style={s.editor}
-              dangerouslySetInnerHTML={{ __html: description || "<p>Add a description...</p>" }}
-              onInput={(e) => {
-                setDescription(e.currentTarget.innerHTML);
-                onUpdate({ description: e.currentTarget.innerHTML });
-              }}
+            <div ref={editorRef} contentEditable suppressContentEditableWarning style={s.editor}
+              dangerouslySetInnerHTML={{ __html: description || "<p style='color:#333'>Add a description...</p>" }}
+              onInput={(e) => { setDescription(e.currentTarget.innerHTML); onUpdate({ description: e.currentTarget.innerHTML }); }}
               onFocus={(e) => {
-                if (e.currentTarget.innerHTML === "<p>Add a description...</p>") {
-                  document.execCommand("selectAll");
-                  document.execCommand("delete");
+                if (e.currentTarget.innerText.trim() === "Add a description...") {
+                  document.execCommand("selectAll"); document.execCommand("delete");
                 }
               }}
             />
           </div>
         )}
 
-        {/* ── Comments ── */}
+        {/* Comments */}
         {activeTab === "comments" && (
           <div style={s.commentsSection}>
-            {/* Comment list */}
             <div style={s.commentList}>
-              {comments.length === 0 && (
-                <div style={s.noComments}>No comments yet. Be the first!</div>
-              )}
+              {comments.length === 0 && <div style={s.noComments}>No comments yet.</div>}
               {comments.map((c) => (
                 <div key={c.id} style={s.comment}>
-                  <div style={s.commentAvatar}>{c.author}</div>
+                  <div style={{ ...s.commentAvatar, background: c.color }}>{c.author}</div>
                   <div style={s.commentBody}>
                     <div style={s.commentMeta}>
                       <span style={s.commentName}>{c.name}</span>
@@ -275,26 +205,15 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
                 </div>
               ))}
             </div>
-
-            {/* Comment input */}
             <div style={s.commentInput}>
-              <div style={s.commentAvatar}>KM</div>
+              <div style={{ ...s.commentAvatar, background: "#3b82f6" }}>KM</div>
               <div style={s.commentInputBox}>
-                <textarea
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
+                <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); } }}
-                  placeholder="Write a comment... (Enter to send, Shift+Enter for new line)"
-                  style={s.commentTextarea}
-                  rows={3}
-                />
+                  placeholder="Write a comment... (Enter to send)"
+                  style={s.commentTextarea} rows={3} />
                 <div style={s.commentActions}>
-                  <button
-                    style={{ ...s.sendBtn, ...(commentText.trim() ? s.sendBtnActive : {}) }}
-                    onClick={submitComment}
-                  >
-                    Send
-                  </button>
+                  <button style={{ ...s.sendBtn, ...(commentText.trim() ? s.sendBtnActive : {}) }} onClick={submitComment}>Send</button>
                 </div>
               </div>
             </div>
@@ -306,9 +225,9 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
 }
 
 // ── MetaRow ───────────────────────────────────────────────────────────────────
-function MetaRow({ label, children, onClick }) {
+function MetaRow({ label, children }) {
   return (
-    <div style={s.metaRow} onClick={onClick}>
+    <div style={s.metaRow}>
       <div style={s.metaLabel}>{label}</div>
       <div style={s.metaValue}>{children}</div>
     </div>
@@ -323,7 +242,6 @@ function FieldDropdown({ children, onClose, width = 180 }) {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [onClose]);
-
   return (
     <div ref={ref} style={{ ...s.fieldDropdown, width }} onClick={(e) => e.stopPropagation()}>
       {children}
@@ -335,13 +253,9 @@ function FieldDropdown({ children, onClose, width = 180 }) {
 function ToolBtn({ onClick, title, children }) {
   const [hovered, setHovered] = useState(false);
   return (
-    <div
-      title={title}
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{ ...s.toolBtn, ...(hovered ? s.toolBtnHover : {}) }}
-    >
+    <div title={title} onClick={onClick}
+      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      style={{ ...s.toolBtn, ...(hovered ? s.toolBtnHover : {}) }}>
       {children}
     </div>
   );
@@ -354,15 +268,14 @@ const s = {
   headerLeft:      { display: "flex", alignItems: "center", gap: 10 },
   statusPill:      { fontSize: 11, padding: "2px 10px", borderRadius: 4 },
   projectName:     { fontSize: 11, color: "#444" },
-  closeBtn:        { width: 26, height: 26, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#555", background: "transparent" },
-  taskTitle:       { fontSize: 15, fontWeight: 500, color: "#ddd", padding: "14px 16px 10px", outline: "none", lineHeight: 1.5, flexShrink: 0, borderBottom: "none", cursor: "text" },
+  closeBtn:        { width: 26, height: 26, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#555" },
+  taskTitle:       { fontSize: 15, fontWeight: 500, color: "#ddd", padding: "14px 16px 10px", outline: "none", lineHeight: 1.5, flexShrink: 0, cursor: "text" },
   metaGrid:        { padding: "4px 16px 12px", flexShrink: 0 },
-  metaRow:         { display: "flex", alignItems: "center", padding: "6px 0", borderBottom: "0.5px solid #1a1a1a" },
+  metaRow:         { display: "flex", alignItems: "center", padding: "7px 0", borderBottom: "0.5px solid #1a1a1a" },
   metaLabel:       { fontSize: 11, color: "#444", width: 72, flexShrink: 0 },
   metaValue:       { flex: 1 },
   pill:            { display: "inline-flex", alignItems: "center", fontSize: 11, padding: "2px 10px", borderRadius: 4, whiteSpace: "nowrap", cursor: "pointer" },
-  avatar:          { width: 22, height: 22, borderRadius: "50%", background: "#222", border: "0.5px solid #444", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#777", flexShrink: 0 },
-  fieldDropdown:   { position: "absolute", top: 28, left: 0, background: "#1a1a1a", border: "0.5px solid #333", borderRadius: 8, zIndex: 300, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" },
+  fieldDropdown:   { position: "absolute", top: 30, left: 0, background: "#1a1a1a", border: "0.5px solid #333", borderRadius: 8, zIndex: 300, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" },
   ddItem:          { display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, color: "#777" },
   dateInput:       { background: "#222", border: "0.5px solid #444", borderRadius: 4, padding: "4px 8px", fontSize: 12, color: "#aaa", outline: "none", width: "100%", colorScheme: "dark" },
   divider:         { height: "0.5px", background: "#1a1a1a", flexShrink: 0 },
@@ -371,19 +284,17 @@ const s = {
   tabActive:       { color: "#ccc", borderBottomColor: "#ccc" },
   tabBadge:        { fontSize: 10, background: "#1e1e1e", color: "#555", padding: "1px 6px", borderRadius: 10 },
   tabContent:      { flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" },
-  // WYSIWYG
   wysiwyg:         { display: "flex", flexDirection: "column", flex: 1 },
   toolbar:         { display: "flex", alignItems: "center", gap: 2, padding: "8px 12px", borderBottom: "0.5px solid #1a1a1a", flexWrap: "wrap", flexShrink: 0 },
   toolBtn:         { width: 26, height: 26, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#555" },
   toolBtnHover:    { background: "#1e1e1e", color: "#aaa" },
   toolSep:         { width: "0.5px", height: 16, background: "#222", margin: "0 4px" },
   editor:          { flex: 1, padding: "14px 16px", fontSize: 13, color: "#999", lineHeight: 1.7, outline: "none", overflowY: "auto", minHeight: 160 },
-  // Comments
   commentsSection: { display: "flex", flexDirection: "column", flex: 1, padding: "12px 16px", gap: 16 },
   commentList:     { display: "flex", flexDirection: "column", gap: 16, flex: 1 },
   noComments:      { fontSize: 12, color: "#333", textAlign: "center", padding: "24px 0" },
   comment:         { display: "flex", gap: 10 },
-  commentAvatar:   { width: 26, height: 26, borderRadius: "50%", background: "#1e1e1e", border: "0.5px solid #333", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#666", flexShrink: 0 },
+  commentAvatar:   { width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#fff", fontWeight: 600, flexShrink: 0 },
   commentBody:     { flex: 1 },
   commentMeta:     { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 },
   commentName:     { fontSize: 12, color: "#777", fontWeight: 500 },

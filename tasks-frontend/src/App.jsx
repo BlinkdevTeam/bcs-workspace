@@ -6,6 +6,8 @@ import AppLayout from "./layouts/AppLayout";
 import Dashboard from "./pages/dashboard/Dashboard";
 import MyTasks from "./pages/my-tasks/MyTasks";
 
+import Login from "./pages/auth/login";
+
 function App() {
   api.get("/health").then((res) => console.log(res.data));
   
@@ -13,7 +15,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Public routes */}
-        <Route path="/login" element={<div>Login Page</div>} />
+        <Route path="/login" element={<Login />} />
 
         {/* Protected routes — redirects to /login if not authenticated */}
         <Route element={<ProtectedRoute />}>
@@ -28,8 +30,7 @@ function App() {
         {/* Fallback */}
         {/* <Route path="*" element={<div>404 Not Found</div>} /> */}
         <Route element={<AppLayout />}>
-          {/* <Route path="*" element={<Dashboard />} /> */}
-           <Route path="*" element={<MyTasks />} />
+          <Route path="*" element={<Dashboard />} />
         </Route>
 
       </Routes>

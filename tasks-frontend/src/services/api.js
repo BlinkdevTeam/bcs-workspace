@@ -1,59 +1,92 @@
 import axios from "axios";
-import store from "../store/store";
-import { logout, setCredentials } from "../store/slices/authSlice";
+import { store } from "../store/store";
+import { setCredentials, clearCredentials } from "../store/slices/authSlice";
 
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
+
+// ── Main Axios instance ───────────────────────────────────────────────────────
 const api = axios.create({
-  baseURL: "http://localhost:5001/api",
-  withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
+  baseURL:         BASE_URL,
+  withCredentials: true, // send httpOnly refresh token cookie automatically
 });
 
-// ── Request interceptor ───────────────────────────────────────────────────────
-api.interceptors.request.use(
-  (config) => {
-    const token = store.getState().auth.token;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+// ── Request interceptor — attach access token ─────────────────────────────────
+api.interceptors.request.use((config) => {
+  const token = store.getState().auth.accessToken;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-// ── Response interceptor ──────────────────────────────────────────────────────
+// ── Response interceptor — silent refresh on 401 ─────────────────────────────
+let isRefreshing  = false;
+let failedQueue   = []; // requests waiting for refresh
+
+function processQueue(error, token = null) {
+  failedQueue.forEach((prom) => {
+    if (error) prom.reject(error);
+    else       prom.resolve(token);
+  });
+  failedQueue = [];
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Only retry once
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      try {
-        // Call refresh endpoint — sends httpOnly cookie automatically
-        const res = await api.post("/auth/refresh");
-        const newToken = res.data.accessToken;
+    // Only attempt refresh on 401 with TOKEN_EXPIRED code, once
+    const isExpired =
+      error.response?.status === 401 &&
+      error.response?.data?.code === "TOKEN_EXPIRED" &&
+      !originalRequest._retry;
 
-        // Update Redux store with new token
-        store.dispatch(setCredentials({
-          token: newToken,
-          user: store.getState().auth.user,
-        }));
+    if (!isExpired) return Promise.reject(error);
 
-        // Retry the original request with new token
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return api(originalRequest);
-      } catch (err) {
-        // Refresh failed → clear store and redirect to login
-        store.dispatch(logout());
-        window.location.href = "/login";
-        return Promise.reject(err);
-      }
+    if (isRefreshing) {
+      // Queue other requests while refresh is in flight
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      })
+        .then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        })
+        .catch((err) => Promise.reject(err));
     }
 
-    return Promise.reject(error);
+    originalRequest._retry = true;
+    isRefreshing            = true;
+
+    try {
+      const { data } = await axios.post(
+        `${BASE_URL}/auth/refresh`,
+        {},
+        { withCredentials: true }
+      );
+
+      const newToken = data.access_token;
+
+      // Update Redux store with new access token (keep existing user)
+      store.dispatch(
+        setCredentials({
+          employee:     store.getState().auth.user,
+          access_token: newToken,
+        })
+      );
+
+      processQueue(null, newToken);
+      originalRequest.headers.Authorization = `Bearer ${newToken}`;
+      return api(originalRequest);
+    } catch (refreshError) {
+      processQueue(refreshError, null);
+      store.dispatch(clearCredentials());
+      window.location.href = "/login";
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
+    }
   }
 );
 
