@@ -8,6 +8,8 @@ const Employee = require("./core/employee");
 const Department = require("./core/department");
 const PasswordResetToken = require("./core/passwordResettokens");
 const RefreshToken = require("./core/refreshTokens");
+const Role = require("./core/role");
+const RolePermission = require("./core/role_permissions");
 
 // ─────────────────────────────────
 // NEW AUTH MODEL
@@ -106,6 +108,18 @@ PasswordResetToken.belongsTo(Employee, {
 // 🔹 NEW RELATIONSHIP: Employee -> LoginAttempts
 Employee.hasMany(LoginAttempt, { foreignKey: "employee_id" });
 LoginAttempt.belongsTo(Employee, { foreignKey: "employee_id" });
+
+// ─────────────────────────────────
+// ROLE & PERMISSIONS RELATIONSHIPS
+// ─────────────────────────────────
+
+// Role → RolePermissions
+Role.hasMany(RolePermission, { foreignKey: "role_id" });
+RolePermission.belongsTo(Role, { foreignKey: "role_id" });
+
+// OPTIONAL (recommended): attach role to user
+HrisUser.belongsTo(Role, { foreignKey: "role_id" });
+Role.hasMany(HrisUser, { foreignKey: "role_id" });
 
 // ─────────────────────────────────
 // PAYROLL RELATIONSHIPS
@@ -245,6 +259,9 @@ module.exports = {
   PasswordResetToken,
   RefreshToken,
   LoginAttempt,
+
+  Role,
+  RolePermission,
 
   PayrollCutoff,
   CompensationPackage,

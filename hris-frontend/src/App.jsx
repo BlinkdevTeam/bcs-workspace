@@ -13,14 +13,13 @@ import { checkSuperAdmin } from "./services/setupService";
 // HRIS Pages
 import Dashboard from "./pages/dashboard/Dashboard";
 import People from "./pages/people/People";
-// import People from "./templates/UserManagement";
 import EmployeeProfile from "./pages/people/EmployeeProfile";
 import Payroll from "./pages/payroll/Payroll";
 import TimeAndLeave from "./pages/time-leave/TimeInLeave";
 import RecruitmentPage from "./pages/recruitment/Recruitment";
 import InitialSetup from "./pages/initial-setup/InitialSetup";
 import Login from "./pages/login/Login";
-import UserManagement from "./templates/UserManagement";
+import UserManagement from "./templates/UserManagement_II";
 
 // Data
 import {

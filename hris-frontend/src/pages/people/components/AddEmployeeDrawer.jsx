@@ -5,13 +5,14 @@ import { TextInput, Select, DatePicker } from "../../../components/form";
 import { IC, IS } from "../../../data/compData";
 
 // ── ADD EMPLOYEE DRAWER ───────────────────────────────────────────────────────
-export default function AddEmployeeDrawer({ onClose, onSave }) {
+export default function AddEmployeeDrawer({ onClose, onSave, departments, employees, }) {
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
     role: "",
     dept: "",
+    department_id: null,
     location: "New York",
     status: "Active",
     joined: "",
@@ -19,6 +20,7 @@ export default function AddEmployeeDrawer({ onClose, onSave }) {
     payFreq: "Bi-weekly",
     empType: "Full-time",
     manager: "",
+    manager_id: null,
     schedule: "Mon–Fri, 9am–5pm",
     benefits: "Standard",
     gender: "",
@@ -30,6 +32,22 @@ export default function AddEmployeeDrawer({ onClose, onSave }) {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
+  // ✅ AUTO SET MANAGER FROM DEPARTMENT
+  function handleDeptChange(deptName) {
+    const dept = departments.find((d) => d.name === deptName);
+    const head = employees.find((e) => e.id === dept?.head_id);
+
+    setForm((prev) => ({
+      ...prev,
+      dept: deptName,
+      department_id: dept?.id || null,
+      manager: head
+        ? `${head.first_name} ${head.last_name}`
+        : "No head assigned",
+      manager_id: dept?.head_id || null,
+    }));
+  }
+
   function handleSave() {
     const names = form.name.trim().split(" ");
     const first_name = names[0] || "";
@@ -38,26 +56,6 @@ export default function AddEmployeeDrawer({ onClose, onSave }) {
     const hire_date = form.joined
       ? new Date(form.joined).toISOString().split("T")[0]
       : new Date().toISOString().split("T")[0];
-
-    // Map department/manager names to UUIDs
-    const departmentMap = {
-      Engineering: "UUID-OF-ENGINEERING",
-      Sales: "UUID-OF-SALES",
-      "HR & Admin": "UUID-OF-HR",
-      Product: "UUID-OF-PRODUCT",
-      Design: "UUID-OF-DESIGN",
-      Operations: "UUID-OF-OPERATIONS",
-      Marketing: "UUID-OF-MARKETING",
-    };
-
-    const managerMap = {
-      "Sara Okafor": "UUID-OF-SARA",
-      "Noah Kim": "UUID-OF-NOAH",
-      "Devon Park": "UUID-OF-DEVON",
-      CEO: "UUID-OF-CEO",
-      "Rita Vance": "UUID-OF-RITA",
-      "Leila Farouk": "UUID-OF-LEILA",
-    };
 
     const payload = {
       employee_code: `EMP${Date.now()}`,
@@ -74,13 +72,14 @@ export default function AddEmployeeDrawer({ onClose, onSave }) {
           .join("")
           .slice(0, 2)
           .toUpperCase() || "??",
-      department_id: form.dept ? departmentMap[form.dept] || null : null,
+      department_id: form.department_id, // ✅ FIXED
       role_title: form.role,
       employment_type: form.empType,
       status: form.status.toLowerCase(),
       hire_date,
       end_date: null,
-      manager_id: form.manager ? managerMap[form.manager] || null : null,
+      manager_id: form.manager_id,       // ✅ FIXED
+      // manager_id: form.manager ? managerMap[form.manager] || null : null,
       gender: form.gender || null,
       dob: form.dob ? new Date(form.dob).toISOString().split("T")[0] : null,
       location: form.location || null,
@@ -236,22 +235,15 @@ export default function AddEmployeeDrawer({ onClose, onSave }) {
             onChange={(e) => set("role", e.target.value)}
           />
           <div className="grid grid-cols-2 gap-4">
-            <Select
-              label="Department"
-              value={form.dept}
-              onChange={(e) => set("dept", e.target.value)}
-              options={[
-                "Engineering",
-                "Sales",
-                "Product",
-                "Design",
-                "Operations",
-                "Marketing",
-                "HR & Admin",
-              ]}
-              className={IC}
-              style={IS}
-            />
+            {/* ✅ Dynamic Department */}
+        <Select
+          label="Department"
+          value={form.dept}
+          onChange={(e) => handleDeptChange(e.target.value)}
+          options={departments.map((d) => d.name)}
+          className={IC}
+          style={IS}
+        />
             <Select
               label="Status"
               value={form.status}
@@ -270,21 +262,14 @@ export default function AddEmployeeDrawer({ onClose, onSave }) {
               className={IC}
               style={IS}
             />
-            <Select
-              label="Manager"
-              value={form.manager}
-              onChange={(e) => set("manager", e.target.value)}
-              options={[
-                "CEO",
-                "Devon Park",
-                "Sara Okafor",
-                "Rita Vance",
-                "Leila Farouk",
-                "Noah Kim",
-              ]}
-              className={IC}
-              style={IS}
-            />
+            {/* ✅ Auto Manager */}
+        <TextInput
+          label="Manager"
+          value={form.manager}
+          disabled
+          className={IC}
+          style={IS}
+        />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <DatePicker

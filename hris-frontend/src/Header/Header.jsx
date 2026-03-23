@@ -10,6 +10,7 @@ import DropdownMenu from "./components/DropdownMenu";
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "People", path: "/people" },
+  { label: "User Management", path: "/users" },
   { label: "Payroll", path: "/payroll" },
   { label: "Time & Leave", path: "/time-leave" },
   { label: "Recruitment", path: "/recruitment" },
