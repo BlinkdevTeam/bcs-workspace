@@ -7,7 +7,7 @@ import api from "./api";
  * @returns Axios Promise
  */
 export const submitInitialSetup = (company, admin) => {
-  return api.post("/setup", { company, admin });
+  return api.post("/api/setup", { company, admin });
 };
 
 /**

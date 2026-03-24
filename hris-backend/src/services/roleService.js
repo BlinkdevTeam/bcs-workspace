@@ -1,5 +1,8 @@
-const { Role, RolePermission } = require("../models");
+"use strict";
 
+const { sequelize, Role, RolePermission } = require("../models");
+
+// Define all permissions
 const ALL_PERMISSIONS = {
   Employees: [
     "employees.view_all",
@@ -65,26 +68,58 @@ const ALL_PERMISSIONS = {
   ],
 };
 
+/**
+ * Create a role and seed all permissions
+ * @param {string} roleName
+ * @returns {Promise<Role>}
+ */
 async function createRoleWithPermissions(roleName) {
-  const role = await Role.create({ name: roleName });
+  const transaction = await sequelize.transaction();
 
-  const permissionsToInsert = [];
+  try {
+    // 1️⃣ Create role
+    const role = await Role.create({ name: roleName }, { transaction });
 
-  for (const module in ALL_PERMISSIONS) {
-    for (const perm of ALL_PERMISSIONS[module]) {
-      permissionsToInsert.push({
-        role_id: role.id,
-        module,
-        permission: perm,
-      });
+    if (!role || !role.id) {
+      throw new Error("Role creation failed, no ID returned");
     }
+
+    // 2️⃣ Prepare permission records
+    const permissionsToInsert = [];
+
+    for (const module in ALL_PERMISSIONS) {
+      for (const perm of ALL_PERMISSIONS[module]) {
+        permissionsToInsert.push({
+          role_id: role.id,
+          module,
+          permission: perm,
+        });
+      }
+    }
+
+    if (permissionsToInsert.length === 0) {
+      throw new Error("No permissions to insert");
+    }
+
+    // 3️⃣ Bulk insert with logging
+    await RolePermission.bulkCreate(permissionsToInsert, {
+      transaction,
+      logging: console.log, // shows SQL queries in console
+    });
+
+    // 4️⃣ Commit transaction
+    await transaction.commit();
+
+    console.log(
+      `Role "${roleName}" created with ${permissionsToInsert.length} permissions`,
+    );
+
+    return role;
+  } catch (err) {
+    await transaction.rollback();
+    console.error("Failed to create role with permissions:", err);
+    throw err;
   }
-
-  await RolePermission.bulkCreate(permissionsToInsert);
-
-  return role;
 }
 
-module.exports = {
-  createRoleWithPermissions,
-};
+module.exports = { createRoleWithPermissions };

@@ -4,7 +4,7 @@ export default function DropdownMenu({ user, onClose, onLogout }) {
   if (!user) return null; // ✅ early return if user not loaded
 
   const bg = avatarBg(user.id);
-  const rc = ROLE_COLORS[user.role] || { bg: "#111", color: "#aaa" };
+  const rc = ROLE_COLORS[user.role_title] || { bg: "#111", color: "#aaa" };
 
   // Menu items
   const menuItems = [
@@ -55,16 +55,16 @@ export default function DropdownMenu({ user, onClose, onLogout }) {
               border: `2px solid ${bg}40`,
             }}
           >
-            {initials(user.name || "User")} {/* ✅ fallback */}
+            {initials(user.first_name || "User")} {/* ✅ fallback */}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-white font-medium truncate">{user.name || "User"}</p>
+            <p className="text-sm text-white font-medium truncate">{user.first_name || "User"}</p>
             <p className="text-xs text-gray-500 truncate">{user.email || "-"}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: rc.bg, color: rc.color }}>
-            {ROLE_LABELS[user.role] || "Employee"}
+            {ROLE_LABELS[user.role_title] || "Employee"}
           </span>
           <span className="text-xs text-gray-500">{user.dept || "-"}</span>
         </div>

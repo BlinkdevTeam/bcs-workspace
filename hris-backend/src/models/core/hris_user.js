@@ -22,9 +22,14 @@ const HrisUser = sequelize.define(
       },
     },
 
-    role: {
-      type: DataTypes.ENUM("super_admin", "hr_admin", "manager"),
-      allowNull: false,
+    // ✅ NEW: use role_id instead of ENUM
+    role_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: "roles",
+        key: "id",
+      },
     },
 
     is_active: {

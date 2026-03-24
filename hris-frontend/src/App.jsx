@@ -84,6 +84,25 @@ function ProtectedLayout({ children }) {
   );
 }
 
+function PublicRoute({ children }) {
+  const [loading, setLoading] = useState(true);
+  const [setupComplete, setSetupComplete] = useState(false);
+
+  useEffect(() => {
+    checkSuperAdmin()
+      .then((res) => setSetupComplete(res.exists))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <PageLoader message="Checking setup..." />;
+
+  // If setup is not complete, redirect to initial setup
+  if (!setupComplete) return <Navigate to="/initial-setup" replace />;
+
+  // Otherwise, allow access to login or public page
+  return children;
+}
+
 function RootRedirect() {
   const { isAuthenticated, loading } = useSelector((state) => state.auth);
   const [setupLoading, setSetupLoading] = useState(true);
@@ -174,7 +193,14 @@ export default function App() {
         <Route path="/" element={<RootRedirect />} />
 
         {/* Auth Pages */}
-        <Route path="/login" element={<Login />} />
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
 
         <Route path="/set-password-reset" element={<Login />} />
         <Route

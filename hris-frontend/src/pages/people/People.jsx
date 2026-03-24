@@ -223,12 +223,12 @@ export default function People({
 
       {peopleView === "user" && (
         <UsersTab
-  users={mappedUsers}
-  onInviteUser={() => setShowCreateUser(true)}
-  onAddUser={(newUser) => {
-    setEmployees((prev) => [...prev, newUser]);
-  }}
-/>
+          users={mappedUsers}
+          onInviteUser={() => setShowCreateUser(true)}
+          onAddUser={(newUser) => {
+            setEmployees((prev) => [...prev, newUser]);
+          }}
+        />
       )}
 
       {peopleView === "department" && (

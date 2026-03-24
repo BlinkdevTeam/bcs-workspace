@@ -1,0 +1,158 @@
+-- ──────────────────────────────
+-- Ensure pgcrypto is available
+-- ──────────────────────────────
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ──────────────────────────────
+-- Step 1: Create super_admin role
+-- ──────────────────────────────
+-- Replace role id if you want a fixed one
+INSERT INTO roles (id, name, description, is_system, created_by, created_at, updated_at)
+VALUES (
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',  -- role id
+    'super_admin',
+    'System super administrator',
+    TRUE,
+    NULL,
+    NOW(),
+    NOW()
+)
+ON CONFLICT (name) DO NOTHING;  -- avoids duplicates
+
+-- ──────────────────────────────
+-- Step 2: Insert all permissions for super_admin
+-- ──────────────────────────────
+INSERT INTO role_permissions (id, role_id, module, permission, created_at, updated_at)
+VALUES
+-- Employees
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Employees', 'employees.view_all', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Employees', 'employees.view_dept', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Employees', 'employees.view_own', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Employees', 'employees.create', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Employees', 'employees.edit_all', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Employees', 'employees.edit_own', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Employees', 'employees.deactivate', NOW(), NOW()),
+
+-- Payroll
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Payroll', 'payroll.view_all', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Payroll', 'payroll.view_own', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Payroll', 'payroll.run', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Payroll', 'payroll.adjust', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Payroll', 'payroll.configure', NOW(), NOW()),
+
+-- Attendance
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Attendance', 'attendance.view_all', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Attendance', 'attendance.view_dept', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Attendance', 'attendance.view_own', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Attendance', 'attendance.correct', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Attendance', 'attendance.correct_dept', NOW(), NOW()),
+
+-- Leave
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Leave', 'leave.view_all', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Leave', 'leave.view_dept', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Leave', 'leave.view_own', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Leave', 'leave.file', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Leave', 'leave.approve_all', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Leave', 'leave.approve_dept', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Leave', 'leave.configure', NOW(), NOW()),
+
+-- Offset
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Offset', 'offset.view_all', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Offset', 'offset.view_own', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Offset', 'offset.create', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Offset', 'offset.approve', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Offset', 'offset.void', NOW(), NOW()),
+
+-- Recruitment
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Recruitment', 'recruitment.view', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Recruitment', 'recruitment.manage_jobs', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Recruitment', 'recruitment.manage_applicants', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Recruitment', 'recruitment.schedule_interviews', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Recruitment', 'recruitment.manage_offers', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Recruitment', 'recruitment.manage_onboarding', NOW(), NOW()),
+
+-- Tasks
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Tasks', 'tasks.view_all', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Tasks', 'tasks.view_dept', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Tasks', 'tasks.view_own', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Tasks', 'tasks.create', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Tasks', 'tasks.assign_any', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Tasks', 'tasks.assign_dept', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Tasks', 'tasks.manage_projects', NOW(), NOW()),
+
+-- System
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'System', 'users.manage', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'System', 'roles.assign', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'System', 'permissions.override', NOW(), NOW()),
+(gen_random_uuid(), 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'System', 'system.audit_logs', NOW(), NOW());
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- ──────────────────────────────
+-- Step 1: Create management role
+-- ──────────────────────────────
+INSERT INTO roles (id, name, description, is_system, created_by, created_at, updated_at)
+VALUES (
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',  -- new role id
+    'management',
+    'Management role with limited admin access',
+    TRUE,
+    NULL,
+    NOW(),
+    NOW()
+)
+ON CONFLICT (name) DO NOTHING;
+
+-- ──────────────────────────────
+-- Step 2: Assign permissions to management
+-- ──────────────────────────────
+INSERT INTO role_permissions (id, role_id, module, permission, created_at, updated_at)
+VALUES
+-- Employees (view and edit own dept)
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Employees', 'employees.view_dept', NOW(), NOW()),
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Employees', 'employees.view_own', NOW(), NOW()),
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Employees', 'employees.edit_own', NOW(), NOW()),
+
+-- Payroll (view own only)
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Payroll', 'payroll.view_own', NOW(), NOW()),
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Payroll', 'payroll.run', NOW(), NOW()),
+
+-- Attendance (view own + dept)
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Attendance', 'attendance.view_dept', NOW(), NOW()),
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Attendance', 'attendance.view_own', NOW(), NOW()),
+
+-- Leave (approve dept only)
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Leave', 'leave.view_dept', NOW(), NOW()),
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Leave', 'leave.approve_dept', NOW(), NOW()),
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Leave', 'leave.file', NOW(), NOW()),
+
+-- Offset (view + approve dept)
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Offset', 'offset.view_dept', NOW(), NOW()),
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Offset', 'offset.approve', NOW(), NOW()),
+
+-- Tasks (view dept + assign dept)
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Tasks', 'tasks.view_dept', NOW(), NOW()),
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Tasks', 'tasks.assign_dept', NOW(), NOW()),
+
+-- Recruitment (view + manage limited jobs)
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Recruitment', 'recruitment.view', NOW(), NOW()),
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Recruitment', 'recruitment.manage_jobs', NOW(), NOW()),
+
+-- System (limited)
+(gen_random_uuid(), 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'System', 'users.manage', NOW(), NOW());

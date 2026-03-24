@@ -4,12 +4,12 @@
 // CORE MODELS
 // ─────────────────────────────────
 const HrisUser = require("./core/hris_user");
+const Role = require("./core/role");
+const RolePermission = require("./core/role_permissions");
 const Employee = require("./core/employee");
 const Department = require("./core/department");
 const PasswordResetToken = require("./core/passwordResettokens");
 const RefreshToken = require("./core/refreshTokens");
-const Role = require("./core/role");
-const RolePermission = require("./core/role_permissions");
 
 // ─────────────────────────────────
 // NEW AUTH MODEL
@@ -117,7 +117,6 @@ LoginAttempt.belongsTo(Employee, { foreignKey: "employee_id" });
 Role.hasMany(RolePermission, { foreignKey: "role_id" });
 RolePermission.belongsTo(Role, { foreignKey: "role_id" });
 
-// OPTIONAL (recommended): attach role to user
 HrisUser.belongsTo(Role, { foreignKey: "role_id" });
 Role.hasMany(HrisUser, { foreignKey: "role_id" });
 
@@ -254,14 +253,13 @@ TaskTimeLog.belongsTo(Employee, { foreignKey: "employee_id" });
 // ─────────────────────────────────
 module.exports = {
   HrisUser,
+  Role,
+  RolePermission,
   Employee,
   Department,
   PasswordResetToken,
   RefreshToken,
   LoginAttempt,
-
-  Role,
-  RolePermission,
 
   PayrollCutoff,
   CompensationPackage,
