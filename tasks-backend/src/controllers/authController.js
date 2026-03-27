@@ -20,6 +20,7 @@ function setCookieOptions() {
     sameSite: config.cookie.sameSite,
     maxAge:   config.cookie.maxAge,
     path:     "/",
+    
   };
 }
 
