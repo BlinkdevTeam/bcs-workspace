@@ -1,6 +1,8 @@
 "use strict";
 
+const crypto = require("crypto");
 const User = require("../models/core/user");
+const { sendInviteEmail } = require("../utils/sendInviteEmail");
 
 // GET ALL USERS
 exports.getAll = async (_req, res, next) => {
@@ -84,6 +86,55 @@ exports.checkSuperAdmin = async (req, res, next) => {
       message: "User is super admin",
       data: {
         id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// INVITE USER
+exports.invite = async (req, res, next) => {
+  try {
+    const { employee_id, email, name, role } = req.body;
+
+    if (!employee_id || !email || !name) {
+      return res.status(400).json({
+        success: false,
+        message: "employee_id, email, and name are required",
+      });
+    }
+
+    // Generate a temporary password and invite token
+    const temporaryPassword = crypto.randomBytes(6).toString("base64url");
+    const inviteToken        = crypto.randomBytes(32).toString("hex");
+    const inviteLink         = `${process.env.APP_BASE_URL}/accept-invite?token=${inviteToken}`;
+
+    // Create the user record
+    const user = await User.create({
+      employee_id,
+      email,
+      password_hash: temporaryPassword, // hash this with bcrypt before saving in production
+      role: role || "employee",
+      invite_token: inviteToken,         // store on your model if you need to verify later
+    });
+
+    // Send the invitation email
+    await sendInviteEmail({
+      toEmail: email,
+      toName: name,
+      temporaryPassword,
+      inviteLink,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Invitation sent to ${email}`,
+      data: {
+        id: user.id,
+        employee_id: user.employee_id,
         email: user.email,
         role: user.role,
       },

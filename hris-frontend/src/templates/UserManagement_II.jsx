@@ -31,19 +31,20 @@ function Avatar({ user, size=32 }) {
   );
 }
 
+// ── SEED DATA — taskAppInvited field added ────────────────────────────────────
 const USERS_SEED = [
-  { id:1,  name:"System Admin",       email:"admin@company.com",   role:"super_admin", dept:"HR & Admin",  status:"active",   lastLogin:"Mar 2, 2026 · 8:45 AM",  mustChangePassword:false, createdOn:"Jan 1, 2026"  },
-  { id:2,  name:"Chris Mendez",       email:"hr@company.com",      role:"hr_admin",    dept:"HR & Admin",  status:"active",   lastLogin:"Mar 2, 2026 · 9:01 AM",  mustChangePassword:false, createdOn:"Jan 1, 2026"  },
-  { id:3,  name:"Devon Park",         email:"manager@company.com", role:"manager",     dept:"Engineering", status:"active",   lastLogin:"Mar 1, 2026 · 5:30 PM",  mustChangePassword:false, createdOn:"Jan 5, 2026"  },
-  { id:4,  name:"Sara Okafor",        email:"sara@company.com",    role:"employee",    dept:"Engineering", status:"active",   lastLogin:"Mar 2, 2026 · 8:52 AM",  mustChangePassword:false, createdOn:"Jan 5, 2026"  },
-  { id:5,  name:"Marcus Chen",        email:"marcus@company.com",  role:"employee",    dept:"Sales",       status:"active",   lastLogin:"Mar 1, 2026 · 2:10 PM",  mustChangePassword:false, createdOn:"Jan 5, 2026"  },
-  { id:6,  name:"Priya Nair",         email:"priya@company.com",   role:"manager",     dept:"Product",     status:"active",   lastLogin:"Feb 28, 2026 · 4:00 PM", mustChangePassword:false, createdOn:"Jan 5, 2026"  },
-  { id:7,  name:"Rita Vance",         email:"rita@company.com",    role:"manager",     dept:"Sales",       status:"active",   lastLogin:"Mar 2, 2026 · 10:15 AM", mustChangePassword:false, createdOn:"Jan 5, 2026"  },
-  { id:8,  name:"Leila Farouk",       email:"leila@company.com",   role:"employee",    dept:"Product",     status:"active",   lastLogin:"Mar 1, 2026 · 11:00 AM", mustChangePassword:false, createdOn:"Jan 10, 2026" },
-  { id:9,  name:"Tomás Rivera",       email:"tomas@company.com",   role:"employee",    dept:"Design",      status:"active",   lastLogin:"Mar 2, 2026 · 9:30 AM",  mustChangePassword:false, createdOn:"Jan 10, 2026" },
-  { id:10, name:"Ananya Bose",        email:"ananya@company.com",  role:"employee",    dept:"Operations",  status:"inactive", lastLogin:"Feb 10, 2026 · 8:00 AM", mustChangePassword:false, createdOn:"Jan 10, 2026" },
-  { id:11, name:"Noah Kim",           email:"noah@company.com",    role:"employee",    dept:"Marketing",   status:"active",   lastLogin:"Never",                  mustChangePassword:true,  createdOn:"Mar 1, 2026"  },
-  { id:12, name:"Fatima Al-Hassan",   email:"fatima@company.com",  role:"employee",    dept:"Engineering", status:"active",   lastLogin:"Mar 2, 2026 · 9:15 AM",  mustChangePassword:false, createdOn:"Jan 5, 2026"  },
+  { id:1,  name:"System Admin",     email:"admin@company.com",   role:"super_admin", dept:"HR & Admin",  status:"active",   lastLogin:"Mar 2, 2026 · 8:45 AM",  mustChangePassword:false, createdOn:"Jan 1, 2026",  taskAppInvited:false },
+  { id:2,  name:"Chris Mendez",     email:"hr@company.com",      role:"hr_admin",    dept:"HR & Admin",  status:"active",   lastLogin:"Mar 2, 2026 · 9:01 AM",  mustChangePassword:false, createdOn:"Jan 1, 2026",  taskAppInvited:false },
+  { id:3,  name:"Devon Park",       email:"manager@company.com", role:"manager",     dept:"Engineering", status:"active",   lastLogin:"Mar 1, 2026 · 5:30 PM",  mustChangePassword:false, createdOn:"Jan 5, 2026",  taskAppInvited:true  },
+  { id:4,  name:"Sara Okafor",      email:"sara@company.com",    role:"employee",    dept:"Engineering", status:"active",   lastLogin:"Mar 2, 2026 · 8:52 AM",  mustChangePassword:false, createdOn:"Jan 5, 2026",  taskAppInvited:true  },
+  { id:5,  name:"Marcus Chen",      email:"marcus@company.com",  role:"employee",    dept:"Sales",       status:"active",   lastLogin:"Mar 1, 2026 · 2:10 PM",  mustChangePassword:false, createdOn:"Jan 5, 2026",  taskAppInvited:false },
+  { id:6,  name:"Priya Nair",       email:"priya@company.com",   role:"manager",     dept:"Product",     status:"active",   lastLogin:"Feb 28, 2026 · 4:00 PM", mustChangePassword:false, createdOn:"Jan 5, 2026",  taskAppInvited:false },
+  { id:7,  name:"Rita Vance",       email:"rita@company.com",    role:"manager",     dept:"Sales",       status:"active",   lastLogin:"Mar 2, 2026 · 10:15 AM", mustChangePassword:false, createdOn:"Jan 5, 2026",  taskAppInvited:false },
+  { id:8,  name:"Leila Farouk",     email:"leila@company.com",   role:"employee",    dept:"Product",     status:"active",   lastLogin:"Mar 1, 2026 · 11:00 AM", mustChangePassword:false, createdOn:"Jan 10, 2026", taskAppInvited:false },
+  { id:9,  name:"Tomás Rivera",     email:"tomas@company.com",   role:"employee",    dept:"Design",      status:"active",   lastLogin:"Mar 2, 2026 · 9:30 AM",  mustChangePassword:false, createdOn:"Jan 10, 2026", taskAppInvited:false },
+  { id:10, name:"Ananya Bose",      email:"ananya@company.com",  role:"employee",    dept:"Operations",  status:"inactive", lastLogin:"Feb 10, 2026 · 8:00 AM", mustChangePassword:false, createdOn:"Jan 10, 2026", taskAppInvited:false },
+  { id:11, name:"Noah Kim",         email:"noah@company.com",    role:"employee",    dept:"Marketing",   status:"active",   lastLogin:"Never",                  mustChangePassword:true,  createdOn:"Mar 1, 2026",  taskAppInvited:false },
+  { id:12, name:"Fatima Al-Hassan", email:"fatima@company.com",  role:"employee",    dept:"Engineering", status:"active",   lastLogin:"Mar 2, 2026 · 9:15 AM",  mustChangePassword:false, createdOn:"Jan 5, 2026",  taskAppInvited:false },
 ];
 
 const ALL_PERMISSIONS = {
@@ -67,45 +68,208 @@ const ROLE_PERMISSIONS = {
 const IC = "w-full px-3 py-2.5 rounded text-sm text-white placeholder-gray-600 outline-none";
 const IS = { backgroundColor:"#111", border:"1px solid #2a2a2a", fontFamily:"system-ui,sans-serif" };
 
-// Custom role color palette options
 const CUSTOM_ROLE_COLORS = [
   { bg:"#1a0a2a", color:"#c07af0", label:"Purple" },
-  { bg:"#0a1a2a", color:"#5a9af0", label:"Blue" },
-  { bg:"#0a1f0a", color:"#5af07a", label:"Green" },
-  { bg:"#1f1a0a", color:"#f0c85a", label:"Amber" },
-  { bg:"#1f0a0a", color:"#f05a5a", label:"Red" },
-  { bg:"#0a1a1a", color:"#50c8c8", label:"Teal" },
+  { bg:"#0a1a2a", color:"#5a9af0", label:"Blue"   },
+  { bg:"#0a1f0a", color:"#5af07a", label:"Green"  },
+  { bg:"#1f1a0a", color:"#f0c85a", label:"Amber"  },
+  { bg:"#1f0a0a", color:"#f05a5a", label:"Red"    },
+  { bg:"#0a1a1a", color:"#50c8c8", label:"Teal"   },
   { bg:"#1a100a", color:"#f0905a", label:"Orange" },
-  { bg:"#151515", color:"#aaaaaa", label:"Gray" },
+  { bg:"#151515", color:"#aaaaaa", label:"Gray"   },
 ];
+
+// ── TASK APP INVITE MODAL ─────────────────────────────────────────────────────
+function TaskAppInviteModal({ user, onClose, onSuccess }) {
+  const [status,   setStatus]  = useState("idle");
+  const [errorMsg, setErrorMsg]= useState("");
+
+  const taskPerms = ALL_PERMISSIONS.Tasks;
+  const roleColor = ROLE_COLORS[user.role]?.color ?? "#aaa";
+
+  async function handleConfirm() {
+    setStatus("loading");
+    setErrorMsg("");
+    try {
+      const res  = await fetch(`/api/users/${user.id}/invite-to-task-app`, { method:"POST" });
+      const data = await res.json();
+      if (!res.ok) { setErrorMsg(data.message || "Something went wrong. Please try again."); setStatus("error"); return; }
+      setStatus("success");
+    } catch {
+      setErrorMsg("Network error. Please check your connection.");
+      setStatus("error");
+    }
+  }
+
+  if (status === "success") return (
+    <>
+      <div className="fixed inset-0 z-40" style={{backgroundColor:"rgba(0,0,0,0.75)"}} onClick={()=>{ onSuccess(user.id); onClose(); }}/>
+      <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div className="w-full max-w-sm rounded-xl flex flex-col items-center py-10 px-8 text-center"
+          style={{backgroundColor:"#080808",border:"1px solid #222",boxShadow:"0 24px 80px rgba(0,0,0,0.8)"}}>
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5"
+            style={{backgroundColor:"#0a1a0a",border:"1px solid #1e3a1e"}}>
+            <span style={{fontSize:28}}>✉️</span>
+          </div>
+          <h3 className="text-lg font-normal text-white mb-2">Invite sent!</h3>
+          <p className="text-sm text-gray-500 leading-relaxed mb-1" style={{fontFamily:"system-ui,sans-serif"}}>
+            <strong className="text-white">{user.name}</strong> has been invited to the Task Management app.
+          </p>
+          <p className="text-xs text-gray-600 mb-8" style={{fontFamily:"system-ui,sans-serif"}}>
+            They'll receive a magic link and temporary password at <span className="text-gray-400">{user.email}</span>.
+          </p>
+          <button onClick={()=>{ onSuccess(user.id); onClose(); }}
+            className="px-6 py-2 rounded text-sm bg-white text-black hover:opacity-80"
+            style={{fontFamily:"system-ui,sans-serif"}}>Done</button>
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40" style={{backgroundColor:"rgba(0,0,0,0.75)"}} onClick={onClose}/>
+      <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div className="w-full max-w-md rounded-xl overflow-hidden"
+          style={{backgroundColor:"#080808",border:"1px solid #222",boxShadow:"0 24px 80px rgba(0,0,0,0.8)"}}>
+
+          <div className="px-7 py-5 flex items-center justify-between" style={{borderBottom:"1px solid #1a1a1a"}}>
+            <div>
+              <p className="text-xs uppercase tracking-widest text-gray-500 mb-0.5" style={{fontFamily:"system-ui,sans-serif"}}>Task Management</p>
+              <h2 className="text-base font-normal text-white">Invite Employee to Task App</h2>
+            </div>
+            <button onClick={onClose} className="text-gray-600 hover:text-white text-xl leading-none">✕</button>
+          </div>
+
+          <div className="px-7 py-5" style={{borderBottom:"1px solid #1a1a1a"}}>
+            <div className="flex items-center gap-4 mb-4">
+              <Avatar user={user} size={44}/>
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-sm">{user.name}</p>
+                <p className="text-gray-500 text-xs mt-0.5 truncate" style={{fontFamily:"system-ui,sans-serif"}}>{user.email}</p>
+              </div>
+              <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0"
+                style={{fontFamily:"system-ui,sans-serif",backgroundColor:ROLE_COLORS[user.role]?.bg,color:roleColor}}>
+                {ROLE_LABELS[user.role] ?? user.role}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg px-3 py-2.5" style={{backgroundColor:"#0d0d0d",border:"1px solid #1e1e1e"}}>
+                <p className="text-xs text-gray-600 mb-0.5" style={{fontFamily:"system-ui,sans-serif"}}>Department</p>
+                <p className="text-xs text-gray-300" style={{fontFamily:"system-ui,sans-serif"}}>{user.dept}</p>
+              </div>
+              <div className="rounded-lg px-3 py-2.5" style={{backgroundColor:"#0d0d0d",border:"1px solid #1e1e1e"}}>
+                <p className="text-xs text-gray-600 mb-0.5" style={{fontFamily:"system-ui,sans-serif"}}>Invite destination</p>
+                <p className="text-xs text-gray-300 truncate" style={{fontFamily:"monospace"}}>{user.email}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-7 py-5" style={{borderBottom:"1px solid #1a1a1a"}}>
+            <p className="text-xs uppercase tracking-widest text-gray-600 mb-3" style={{fontFamily:"system-ui,sans-serif"}}>
+              Task app permissions for <span style={{color:roleColor}}>{ROLE_LABELS[user.role] ?? user.role}</span>
+            </p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-4">
+              {taskPerms.map(p=>(
+                <div key={p} className="flex items-center gap-2">
+                  <div className="w-1 h-1 rounded-full flex-shrink-0" style={{backgroundColor:"#5a9af0"}}/>
+                  <span className="text-xs text-gray-500" style={{fontFamily:"monospace"}}>{p}</span>
+                </div>
+              ))}
+            </div>
+            <div className="rounded-lg px-4 py-3 flex items-start gap-2" style={{backgroundColor:"#0a1020",border:"1px solid #1a2a3a"}}>
+              <span className="text-blue-400 text-xs flex-shrink-0 mt-0.5">ℹ</span>
+              <p className="text-xs text-gray-400 leading-relaxed" style={{fontFamily:"system-ui,sans-serif"}}>
+                The invite email will include a <strong className="text-white">one-click magic link</strong> (valid 24 hrs) and a <strong className="text-white">temporary password</strong>. The employee sets a permanent password on first login.
+              </p>
+            </div>
+          </div>
+
+          {status === "error" && (
+            <div className="px-7 pt-5">
+              <div className="rounded-lg px-4 py-3 flex items-start gap-2" style={{backgroundColor:"#1f0a0a",border:"1px solid #3a1515"}}>
+                <span className="text-red-400 text-xs flex-shrink-0 mt-0.5">✕</span>
+                <p className="text-xs text-red-400" style={{fontFamily:"system-ui,sans-serif"}}>{errorMsg}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="px-7 py-5 flex items-center justify-between">
+            <button onClick={onClose} className="px-4 py-2 rounded text-sm"
+              style={{fontFamily:"system-ui,sans-serif",backgroundColor:"#111",color:"#aaa",border:"1px solid #2a2a2a"}}>
+              Cancel
+            </button>
+            <button onClick={handleConfirm} disabled={status==="loading"}
+              className="px-5 py-2 rounded text-sm font-medium hover:opacity-80 flex items-center gap-2"
+              style={{fontFamily:"system-ui,sans-serif",backgroundColor:"#fff",color:"#000",cursor:status==="loading"?"not-allowed":"pointer",opacity:status==="loading"?0.7:1}}>
+              {status==="loading" ? (
+                <><span style={{display:"inline-block",width:12,height:12,border:"1.5px solid #999",borderTopColor:"#000",borderRadius:"50%",animation:"spin 0.6s linear infinite"}}/>Sending invite…</>
+              ) : "Send Task App Invite ✉"}
+            </button>
+          </div>
+        </div>
+      </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </>
+  );
+}
+
+// ── TASK APP INVITE BUTTON (table row) ────────────────────────────────────────
+function TaskAppInviteButton({ user, onInvited }) {
+  const [showModal, setShowModal] = useState(false);
+  const [invited,   setInvited]   = useState(user.taskAppInvited);
+
+  if (invited) return (
+    <span className="text-xs px-2.5 py-1 rounded flex items-center gap-1.5"
+      style={{fontFamily:"system-ui,sans-serif",backgroundColor:"#0a1a0a",color:"#5af07a",border:"1px solid #1e3a1e"}}>
+      <span style={{fontSize:9}}>✓</span> Task App
+    </span>
+  );
+
+  if (user.status === "inactive") return (
+    <span className="text-xs px-2.5 py-1 rounded"
+      title="Cannot invite an inactive employee"
+      style={{fontFamily:"system-ui,sans-serif",color:"#333",border:"1px solid #1a1a1a",cursor:"not-allowed"}}>
+      Task App
+    </span>
+  );
+
+  return (
+    <>
+      <button onClick={e=>{ e.stopPropagation(); setShowModal(true); }}
+        className="text-xs px-2.5 py-1 rounded flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+        style={{fontFamily:"system-ui,sans-serif",backgroundColor:"#0a1020",color:"#5a9af0",border:"1px solid #1a2a3a",cursor:"pointer"}}>
+        ✉ Task App
+      </button>
+      {showModal && (
+        <TaskAppInviteModal
+          user={user}
+          onClose={()=>setShowModal(false)}
+          onSuccess={(id)=>{ setInvited(true); onInvited(id); }}
+        />
+      )}
+    </>
+  );
+}
 
 // ── CREATE ROLE DRAWER ────────────────────────────────────────────────────────
 function CreateRoleDrawer({ onClose, onSave }) {
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    color: CUSTOM_ROLE_COLORS[0],
-  });
+  const [form, setForm] = useState({ name:"", description:"", color:CUSTOM_ROLE_COLORS[0] });
   const [selectedPerms, setSelectedPerms] = useState(new Set());
-  const [section, setSection] = useState("details"); // "details" | "permissions"
+  const [section, setSection] = useState("details");
   const [saved, setSaved] = useState(false);
 
-  function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
+  function set(k, v) { setForm(f=>({...f,[k]:v})); }
 
   function togglePerm(perm) {
-    setSelectedPerms(prev => {
-      const next = new Set(prev);
-      next.has(perm) ? next.delete(perm) : next.add(perm);
-      return next;
-    });
+    setSelectedPerms(prev => { const next=new Set(prev); next.has(perm)?next.delete(perm):next.add(perm); return next; });
   }
 
   function toggleModule(perms) {
-    const allSelected = perms.every(p => selectedPerms.has(p));
+    const allSelected = perms.every(p=>selectedPerms.has(p));
     setSelectedPerms(prev => {
       const next = new Set(prev);
-      if (allSelected) { perms.forEach(p => next.delete(p)); }
-      else { perms.forEach(p => next.add(p)); }
+      if (allSelected) { perms.forEach(p=>next.delete(p)); } else { perms.forEach(p=>next.add(p)); }
       return next;
     });
   }
@@ -114,57 +278,54 @@ function CreateRoleDrawer({ onClose, onSave }) {
 
   function handleSave() {
     if (!canSave) return;
-    onSave({ ...form, permissions: [...selectedPerms], id: Date.now() });
+    onSave({ ...form, permissions:[...selectedPerms], id:Date.now() });
     setSaved(true);
   }
 
   if (saved) return (
     <>
-      <div className="fixed inset-0 z-20" style={{ backgroundColor:"rgba(0,0,0,0.6)" }} onClick={onClose}/>
+      <div className="fixed inset-0 z-20" style={{backgroundColor:"rgba(0,0,0,0.6)"}} onClick={onClose}/>
       <div className="fixed top-0 right-0 h-full z-30 flex flex-col items-center justify-center px-10"
-        style={{ width:500, backgroundColor:"#080808", borderLeft:"1px solid #222" }}>
+        style={{width:500,backgroundColor:"#080808",borderLeft:"1px solid #222"}}>
         <div className="w-14 h-14 rounded-full flex items-center justify-center mb-5"
-          style={{ backgroundColor:form.color.bg, border:`1px solid ${form.color.color}44` }}>
+          style={{backgroundColor:form.color.bg,border:`1px solid ${form.color.color}44`}}>
           <span className="text-2xl">🛡</span>
         </div>
         <h3 className="text-lg font-normal text-white mb-2 text-center">Role created</h3>
-        <p className="text-sm text-gray-500 text-center leading-relaxed mb-1" style={{ fontFamily:"system-ui,sans-serif" }}>
-          <strong style={{ color: form.color.color }}>{form.name}</strong> has been added with{" "}
-          <strong className="text-white">{selectedPerms.size} permissions</strong>.
+        <p className="text-sm text-gray-500 text-center leading-relaxed mb-1" style={{fontFamily:"system-ui,sans-serif"}}>
+          <strong style={{color:form.color.color}}>{form.name}</strong> has been added with <strong className="text-white">{selectedPerms.size} permissions</strong>.
         </p>
-        <p className="text-xs text-gray-600 text-center mb-6" style={{ fontFamily:"system-ui,sans-serif" }}>
+        <p className="text-xs text-gray-600 text-center mb-6" style={{fontFamily:"system-ui,sans-serif"}}>
           You can assign this role to users from the User Management page.
         </p>
         <button onClick={onClose} className="px-5 py-2 rounded text-sm bg-white text-black hover:opacity-80"
-          style={{ fontFamily:"system-ui,sans-serif" }}>Done</button>
+          style={{fontFamily:"system-ui,sans-serif"}}>Done</button>
       </div>
     </>
   );
 
   return (
     <>
-      <div className="fixed inset-0 z-20" style={{ backgroundColor:"rgba(0,0,0,0.6)" }} onClick={onClose}/>
+      <div className="fixed inset-0 z-20" style={{backgroundColor:"rgba(0,0,0,0.6)"}} onClick={onClose}/>
       <div className="fixed top-0 right-0 h-full z-30 flex flex-col"
-        style={{ width:500, backgroundColor:"#080808", borderLeft:"1px solid #222", boxShadow:"-8px 0 40px rgba(0,0,0,0.8)" }}>
-
-        {/* Header */}
-        <div className="px-7 py-5 flex-shrink-0" style={{ borderBottom:"1px solid #1a1a1a" }}>
+        style={{width:500,backgroundColor:"#080808",borderLeft:"1px solid #222",boxShadow:"-8px 0 40px rgba(0,0,0,0.8)"}}>
+        <div className="px-7 py-5 flex-shrink-0" style={{borderBottom:"1px solid #1a1a1a"}}>
           <div className="flex items-start justify-between mb-4">
             <div>
-              <p className="text-xs uppercase tracking-widest text-gray-500 mb-0.5" style={{ fontFamily:"system-ui,sans-serif" }}>User Management</p>
+              <p className="text-xs uppercase tracking-widest text-gray-500 mb-0.5" style={{fontFamily:"system-ui,sans-serif"}}>User Management</p>
               <h2 className="text-lg font-normal text-white">Create New Role</h2>
             </div>
             <button onClick={onClose} className="text-gray-600 hover:text-white text-xl">✕</button>
           </div>
           <div className="flex gap-1">
-            {["details","permissions"].map(s => (
-              <button key={s} onClick={() => setSection(s)}
+            {["details","permissions"].map(s=>(
+              <button key={s} onClick={()=>setSection(s)}
                 className="px-4 py-1.5 rounded text-xs capitalize"
-                style={{ fontFamily:"system-ui,sans-serif", backgroundColor:section===s?"#fff":"#111", color:section===s?"#000":"#555", border:"1px solid #2a2a2a" }}>
+                style={{fontFamily:"system-ui,sans-serif",backgroundColor:section===s?"#fff":"#111",color:section===s?"#000":"#555",border:"1px solid #2a2a2a"}}>
                 {s}
-                {s === "permissions" && selectedPerms.size > 0 && (
+                {s==="permissions" && selectedPerms.size>0 && (
                   <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-xs"
-                    style={{ fontFamily:"monospace", backgroundColor:form.color.bg, color:form.color.color }}>
+                    style={{fontFamily:"monospace",backgroundColor:form.color.bg,color:form.color.color}}>
                     {selectedPerms.size}
                   </span>
                 )}
@@ -172,124 +333,100 @@ function CreateRoleDrawer({ onClose, onSave }) {
             ))}
           </div>
         </div>
-
         <div className="flex-1 overflow-y-auto px-7 py-6">
-
-          {/* DETAILS */}
-          {section === "details" && (
+          {section==="details" && (
             <div className="space-y-5">
               <div>
-                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-1.5" style={{ fontFamily:"system-ui,sans-serif" }}>Role Name</label>
-                <input className={IC} style={IS} placeholder="e.g. Finance Manager" value={form.name} onChange={e => set("name", e.target.value)}/>
+                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-1.5" style={{fontFamily:"system-ui,sans-serif"}}>Role Name</label>
+                <input className={IC} style={IS} placeholder="e.g. Finance Manager" value={form.name} onChange={e=>set("name",e.target.value)}/>
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-1.5" style={{ fontFamily:"system-ui,sans-serif" }}>Description <span className="text-gray-700 normal-case">(optional)</span></label>
-                <textarea className={IC} style={{ ...IS, resize:"none", height:80 }}
+                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-1.5" style={{fontFamily:"system-ui,sans-serif"}}>Description <span className="text-gray-700 normal-case">(optional)</span></label>
+                <textarea className={IC} style={{...IS,resize:"none",height:80}}
                   placeholder="Brief description of this role's responsibilities…"
-                  value={form.description} onChange={e => set("description", e.target.value)}/>
+                  value={form.description} onChange={e=>set("description",e.target.value)}/>
               </div>
-
-              {/* Color picker */}
               <div>
-                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2" style={{ fontFamily:"system-ui,sans-serif" }}>Badge Color</label>
+                <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2" style={{fontFamily:"system-ui,sans-serif"}}>Badge Color</label>
                 <div className="grid grid-cols-4 gap-2">
-                  {CUSTOM_ROLE_COLORS.map(c => (
-                    <button key={c.label} onClick={() => set("color", c)}
-                      className="py-2 rounded text-xs transition-all"
-                      style={{ fontFamily:"system-ui,sans-serif", backgroundColor:c.bg, color:c.color,
-                        border:`1px solid ${form.color.label===c.label ? c.color+"88" : c.color+"22"}`,
-                        outline: form.color.label===c.label ? `2px solid ${c.color}55` : "none",
-                        outlineOffset: 2 }}>
+                  {CUSTOM_ROLE_COLORS.map(c=>(
+                    <button key={c.label} onClick={()=>set("color",c)} className="py-2 rounded text-xs transition-all"
+                      style={{fontFamily:"system-ui,sans-serif",backgroundColor:c.bg,color:c.color,
+                        border:`1px solid ${form.color.label===c.label?c.color+"88":c.color+"22"}`,
+                        outline:form.color.label===c.label?`2px solid ${c.color}55`:"none",outlineOffset:2}}>
                       {c.label}
                     </button>
                   ))}
                 </div>
               </div>
-
-              {/* Preview badge */}
               {form.name.trim() && (
-                <div className="rounded-lg p-4" style={{ backgroundColor:"#0d0d0d", border:"1px solid #1e1e1e" }}>
-                  <p className="text-xs uppercase tracking-widest text-gray-600 mb-3" style={{ fontFamily:"system-ui,sans-serif" }}>Preview</p>
+                <div className="rounded-lg p-4" style={{backgroundColor:"#0d0d0d",border:"1px solid #1e1e1e"}}>
+                  <p className="text-xs uppercase tracking-widest text-gray-600 mb-3" style={{fontFamily:"system-ui,sans-serif"}}>Preview</p>
                   <div className="flex items-center gap-3">
                     <span className="text-xs px-2.5 py-1 rounded-full"
-                      style={{ fontFamily:"system-ui,sans-serif", backgroundColor:form.color.bg, color:form.color.color, border:`1px solid ${form.color.color}33` }}>
+                      style={{fontFamily:"system-ui,sans-serif",backgroundColor:form.color.bg,color:form.color.color,border:`1px solid ${form.color.color}33`}}>
                       {form.name}
                     </span>
-                    <span className="text-xs text-gray-600" style={{ fontFamily:"system-ui,sans-serif" }}>
-                      {selectedPerms.size} permission{selectedPerms.size !== 1 ? "s" : ""} assigned
+                    <span className="text-xs text-gray-600" style={{fontFamily:"system-ui,sans-serif"}}>
+                      {selectedPerms.size} permission{selectedPerms.size!==1?"s":""} assigned
                     </span>
                   </div>
-                  {form.description && (
-                    <p className="text-xs text-gray-500 mt-2" style={{ fontFamily:"system-ui,sans-serif" }}>{form.description}</p>
-                  )}
+                  {form.description && <p className="text-xs text-gray-500 mt-2" style={{fontFamily:"system-ui,sans-serif"}}>{form.description}</p>}
                 </div>
               )}
-
-              <div className="rounded-lg px-4 py-3 flex items-start gap-2" style={{ backgroundColor:"#0a1a2a", border:"1px solid #1e3a5a" }}>
+              <div className="rounded-lg px-4 py-3 flex items-start gap-2" style={{backgroundColor:"#0a1a2a",border:"1px solid #1e3a5a"}}>
                 <span className="text-blue-400 text-xs flex-shrink-0 mt-0.5">ℹ</span>
-                <p className="text-xs text-gray-400" style={{ fontFamily:"system-ui,sans-serif" }}>
+                <p className="text-xs text-gray-400" style={{fontFamily:"system-ui,sans-serif"}}>
                   Custom roles are additive. Switch to the <strong className="text-white">Permissions</strong> tab to select what this role can access. Permissions can be further overridden per user by a Super Admin.
                 </p>
               </div>
             </div>
           )}
-
-          {/* PERMISSIONS */}
-          {section === "permissions" && (
+          {section==="permissions" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-500" style={{ fontFamily:"system-ui,sans-serif" }}>
+                <p className="text-xs text-gray-500" style={{fontFamily:"system-ui,sans-serif"}}>
                   {selectedPerms.size} of {Object.values(ALL_PERMISSIONS).flat().length} selected
                 </p>
                 <div className="flex gap-2">
-                  <button onClick={() => setSelectedPerms(new Set(Object.values(ALL_PERMISSIONS).flat()))}
+                  <button onClick={()=>setSelectedPerms(new Set(Object.values(ALL_PERMISSIONS).flat()))}
                     className="text-xs px-3 py-1 rounded hover:opacity-80"
-                    style={{ fontFamily:"system-ui,sans-serif", backgroundColor:"#1a1a1a", color:"#aaa", border:"1px solid #2a2a2a" }}>
-                    Select all
-                  </button>
-                  <button onClick={() => setSelectedPerms(new Set())}
+                    style={{fontFamily:"system-ui,sans-serif",backgroundColor:"#1a1a1a",color:"#aaa",border:"1px solid #2a2a2a"}}>Select all</button>
+                  <button onClick={()=>setSelectedPerms(new Set())}
                     className="text-xs px-3 py-1 rounded hover:opacity-80"
-                    style={{ fontFamily:"system-ui,sans-serif", backgroundColor:"#1a1a1a", color:"#aaa", border:"1px solid #2a2a2a" }}>
-                    Clear
-                  </button>
+                    style={{fontFamily:"system-ui,sans-serif",backgroundColor:"#1a1a1a",color:"#aaa",border:"1px solid #2a2a2a"}}>Clear</button>
                 </div>
               </div>
-
-              {Object.entries(ALL_PERMISSIONS).map(([module, perms]) => {
-                const allSelected = perms.every(p => selectedPerms.has(p));
-                const someSelected = perms.some(p => selectedPerms.has(p)) && !allSelected;
+              {Object.entries(ALL_PERMISSIONS).map(([module,perms])=>{
+                const allSelected  = perms.every(p=>selectedPerms.has(p));
+                const someSelected = perms.some(p=>selectedPerms.has(p)) && !allSelected;
                 return (
-                  <div key={module} className="rounded-lg overflow-hidden" style={{ border:"1px solid #1e1e1e" }}>
-                    <button onClick={() => toggleModule(perms)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 transition-colors hover:opacity-80"
-                      style={{ backgroundColor:"#111", fontFamily:"system-ui,sans-serif" }}>
+                  <div key={module} className="rounded-lg overflow-hidden" style={{border:"1px solid #1e1e1e"}}>
+                    <button onClick={()=>toggleModule(perms)}
+                      className="w-full flex items-center justify-between px-4 py-2.5 hover:opacity-80"
+                      style={{backgroundColor:"#111",fontFamily:"system-ui,sans-serif"}}>
                       <p className="text-xs uppercase tracking-widest text-gray-400">{module}</p>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-600" style={{ fontFamily:"monospace" }}>
-                          {perms.filter(p => selectedPerms.has(p)).length}/{perms.length}
-                        </span>
+                        <span className="text-xs text-gray-600" style={{fontFamily:"monospace"}}>{perms.filter(p=>selectedPerms.has(p)).length}/{perms.length}</span>
                         <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: allSelected ? form.color.bg : someSelected ? "#1a1a0a" : "transparent",
-                            border:`1.5px solid ${allSelected ? form.color.color : someSelected ? "#f0c85a" : "#2a2a2a"}` }}>
-                          {allSelected && <span style={{ fontSize:8, color:form.color.color, lineHeight:1 }}>✓</span>}
-                          {someSelected && <span style={{ fontSize:8, color:"#f0c85a", lineHeight:1 }}>−</span>}
+                          style={{backgroundColor:allSelected?form.color.bg:someSelected?"#1a1a0a":"transparent",border:`1.5px solid ${allSelected?form.color.color:someSelected?"#f0c85a":"#2a2a2a"}`}}>
+                          {allSelected  && <span style={{fontSize:8,color:form.color.color,lineHeight:1}}>✓</span>}
+                          {someSelected && <span style={{fontSize:8,color:"#f0c85a",lineHeight:1}}>−</span>}
                         </div>
                       </div>
                     </button>
-                    <div className="px-4 pb-3 pt-1 space-y-1" style={{ backgroundColor:"#0d0d0d" }}>
-                      {perms.map(perm => {
+                    <div className="px-4 pb-3 pt-1 space-y-1" style={{backgroundColor:"#0d0d0d"}}>
+                      {perms.map(perm=>{
                         const has = selectedPerms.has(perm);
                         return (
-                          <div key={perm} onClick={() => togglePerm(perm)}
-                            className="flex items-center gap-3 px-3 py-1.5 rounded cursor-pointer transition-all"
-                            style={{ backgroundColor: has ? form.color.bg : "transparent",
-                              border:`1px solid ${has ? form.color.color+"33" : "transparent"}` }}>
+                          <div key={perm} onClick={()=>togglePerm(perm)}
+                            className="flex items-center gap-3 px-3 py-1.5 rounded cursor-pointer"
+                            style={{backgroundColor:has?form.color.bg:"transparent",border:`1px solid ${has?form.color.color+"33":"transparent"}`}}>
                             <div className="w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0"
-                              style={{ backgroundColor: has ? form.color.bg : "transparent",
-                                border:`1.5px solid ${has ? form.color.color : "#2a2a2a"}` }}>
-                              {has && <span style={{ fontSize:7, color:form.color.color, lineHeight:1 }}>✓</span>}
+                              style={{backgroundColor:has?form.color.bg:"transparent",border:`1.5px solid ${has?form.color.color:"#2a2a2a"}`}}>
+                              {has && <span style={{fontSize:7,color:form.color.color,lineHeight:1}}>✓</span>}
                             </div>
-                            <span className="text-xs" style={{ fontFamily:"monospace", color: has ? "#ccc" : "#3a3a3a" }}>{perm}</span>
+                            <span className="text-xs" style={{fontFamily:"monospace",color:has?"#ccc":"#3a3a3a"}}>{perm}</span>
                           </div>
                         );
                       })}
@@ -300,16 +437,12 @@ function CreateRoleDrawer({ onClose, onSave }) {
             </div>
           )}
         </div>
-
-        <div className="px-7 py-5 flex items-center justify-between flex-shrink-0" style={{ borderTop:"1px solid #1a1a1a" }}>
+        <div className="px-7 py-5 flex items-center justify-between flex-shrink-0" style={{borderTop:"1px solid #1a1a1a"}}>
           <button onClick={onClose} className="px-4 py-2 rounded text-sm"
-            style={{ fontFamily:"system-ui,sans-serif", backgroundColor:"#111", color:"#aaa", border:"1px solid #2a2a2a" }}>Cancel</button>
+            style={{fontFamily:"system-ui,sans-serif",backgroundColor:"#111",color:"#aaa",border:"1px solid #2a2a2a"}}>Cancel</button>
           <button onClick={handleSave} disabled={!canSave}
             className="px-5 py-2 rounded text-sm font-medium hover:opacity-80"
-            style={{ fontFamily:"system-ui,sans-serif",
-              backgroundColor: canSave ? "#fff" : "#1a1a1a",
-              color: canSave ? "#000" : "#444",
-              cursor: canSave ? "pointer" : "not-allowed" }}>
+            style={{fontFamily:"system-ui,sans-serif",backgroundColor:canSave?"#fff":"#1a1a1a",color:canSave?"#000":"#444",cursor:canSave?"pointer":"not-allowed"}}>
             Create Role 🛡
           </button>
         </div>
@@ -318,23 +451,19 @@ function CreateRoleDrawer({ onClose, onSave }) {
   );
 }
 
-// ── INVITE / CREATE USER DRAWER ───────────────────────────────────────────────
+// ── CREATE USER DRAWER ────────────────────────────────────────────────────────
 function CreateUserDrawer({ onClose, onSave, customRoles }) {
-  const allRoles = [...ROLES, ...customRoles.map(r => r.id)];
-  const allRoleLabels = { ...ROLE_LABELS, ...Object.fromEntries(customRoles.map(r => [r.id, r.name])) };
-  const allRoleColors = { ...ROLE_COLORS, ...Object.fromEntries(customRoles.map(r => [r.id, r.color])) };
-  const allRolePerms  = { ...ROLE_PERMISSIONS, ...Object.fromEntries(customRoles.map(r => [r.id, r.permissions])) };
+  const allRoles      = [...ROLES, ...customRoles.map(r=>r.id)];
+  const allRoleLabels = { ...ROLE_LABELS, ...Object.fromEntries(customRoles.map(r=>[r.id,r.name])) };
+  const allRoleColors = { ...ROLE_COLORS, ...Object.fromEntries(customRoles.map(r=>[r.id,r.color])) };
+  const allRolePerms  = { ...ROLE_PERMISSIONS, ...Object.fromEntries(customRoles.map(r=>[r.id,r.permissions])) };
 
   const [form, setForm] = useState({ name:"", email:"", role:"employee", dept:DEPTS[0] });
   const [sent, setSent] = useState(false);
   function set(k,v){ setForm(f=>({...f,[k]:v})); }
   const canSave = form.name.trim() && form.email.includes("@");
 
-  function handleSave() {
-    if (!canSave) return;
-    onSave(form);
-    setSent(true);
-  }
+  function handleSave() { if (!canSave) return; onSave(form); setSent(true); }
 
   if (sent) return (
     <>
@@ -367,12 +496,11 @@ function CreateUserDrawer({ onClose, onSave, customRoles }) {
           </div>
           <button onClick={onClose} className="text-gray-600 hover:text-white text-xl">✕</button>
         </div>
-
         <div className="flex-1 overflow-y-auto px-7 py-6 space-y-5">
           <div className="rounded-lg px-4 py-3 flex items-start gap-2" style={{backgroundColor:"#0a1a2a",border:"1px solid #1e3a5a"}}>
             <span className="text-blue-400 text-xs flex-shrink-0 mt-0.5">ℹ</span>
             <p className="text-xs text-gray-400" style={{fontFamily:"system-ui,sans-serif"}}>
-              An invite email will be sent. The employee sets their own password via a secure link valid for <strong className="text-white">72 hours</strong>.
+              An invite email will be sent. The employee sets their own password via a secure link valid for <strong className="text-white">72 hours</strong>. No password is set by HR.
             </p>
           </div>
           <div>
@@ -393,8 +521,8 @@ function CreateUserDrawer({ onClose, onSave, customRoles }) {
             <div>
               <label className="block text-xs uppercase tracking-widest text-gray-500 mb-1.5" style={{fontFamily:"system-ui,sans-serif"}}>Role</label>
               <select className={IC} style={IS} value={form.role} onChange={e=>set("role",e.target.value)}
-                disabled={CURRENT_USER_ROLE !== "super_admin"}>
-                {allRoles.filter(r => CURRENT_USER_ROLE==="super_admin" || r !== "super_admin").map(r=>(
+                disabled={CURRENT_USER_ROLE!=="super_admin"}>
+                {allRoles.filter(r=>CURRENT_USER_ROLE==="super_admin"||r!=="super_admin").map(r=>(
                   <option key={r} value={r}>{allRoleLabels[r]}</option>
                 ))}
               </select>
@@ -411,15 +539,12 @@ function CreateUserDrawer({ onClose, onSave, customRoles }) {
                   <span className="text-xs text-gray-500" style={{fontFamily:"monospace"}}>{p}</span>
                 </div>
               ))}
-              {(allRolePerms[form.role]||[]).length > 12 && (
-                <p className="text-xs text-gray-700" style={{fontFamily:"system-ui,sans-serif"}}>
-                  +{(allRolePerms[form.role]||[]).length - 12} more permissions
-                </p>
+              {(allRolePerms[form.role]||[]).length>12 && (
+                <p className="text-xs text-gray-700" style={{fontFamily:"system-ui,sans-serif"}}>+{(allRolePerms[form.role]||[]).length-12} more permissions</p>
               )}
             </div>
           </div>
         </div>
-
         <div className="px-7 py-5 flex items-center justify-between flex-shrink-0" style={{borderTop:"1px solid #1a1a1a"}}>
           <button onClick={onClose} className="px-4 py-2 rounded text-sm"
             style={{fontFamily:"system-ui,sans-serif",backgroundColor:"#111",color:"#aaa",border:"1px solid #2a2a2a"}}>Cancel</button>
@@ -436,29 +561,25 @@ function CreateUserDrawer({ onClose, onSave, customRoles }) {
 
 // ── EDIT USER DRAWER ──────────────────────────────────────────────────────────
 function EditUserDrawer({ user, onClose, onSave }) {
-  const [role,     setRole]    = useState(user.role);
-  const [status,   setStatus]  = useState(user.status);
-  const [overrides,setOverrides] = useState({});
-  const [section,  setSection] = useState("details");
+  const [role,      setRole]    = useState(user.role);
+  const [status,    setStatus]  = useState(user.status);
+  const [overrides, setOverrides]=useState({});
+  const [section,   setSection] = useState("details");
 
-  const basePerms = ROLE_PERMISSIONS[role] || [];
-  const rc = ROLE_COLORS[role] || { bg:"#1a1a1a", color:"#aaa" };
-  const canEditRole = CURRENT_USER_ROLE === "super_admin";
-  const canOverride = CURRENT_USER_ROLE === "super_admin";
+  const basePerms  = ROLE_PERMISSIONS[role] || [];
+  const rc         = ROLE_COLORS[role] || { bg:"#1a1a1a", color:"#aaa" };
+  const canEditRole= CURRENT_USER_ROLE === "super_admin";
+  const canOverride= CURRENT_USER_ROLE === "super_admin";
 
   function toggleOverride(perm, baseHas) {
     if (!canOverride) return;
-    setOverrides(prev => {
-      const current = prev[perm];
-      if (!current) return { ...prev, [perm]: baseHas ? "revoke" : "grant" };
-      return { ...prev, [perm]: undefined };
-    });
+    setOverrides(prev => { const current=prev[perm]; if (!current) return {...prev,[perm]:baseHas?"revoke":"grant"}; return {...prev,[perm]:undefined}; });
   }
 
   function effectivePerm(perm) {
     const over = overrides[perm];
-    if (over === "grant")  return true;
-    if (over === "revoke") return false;
+    if (over==="grant")  return true;
+    if (over==="revoke") return false;
     return basePerms.includes(perm);
   }
 
@@ -494,7 +615,6 @@ function EditUserDrawer({ user, onClose, onSave }) {
             ))}
           </div>
         </div>
-
         <div className="flex-1 overflow-y-auto px-7 py-5">
           {section==="details" && (
             <div className="space-y-5">
@@ -503,17 +623,13 @@ function EditUserDrawer({ user, onClose, onSave }) {
                   Role {!canEditRole && <span className="text-gray-700 normal-case ml-1">(Super Admin only)</span>}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {ROLES.map(r => {
-                    const c = ROLE_COLORS[r];
+                  {ROLES.map(r=>{
+                    const c=ROLE_COLORS[r];
                     return (
                       <button key={r} onClick={()=>canEditRole&&setRole(r)} disabled={!canEditRole}
                         className="px-3 py-2.5 rounded-lg text-left"
-                        style={{fontFamily:"system-ui,sans-serif",
-                          backgroundColor: role===r ? c.bg : "#111",
-                          border:`1px solid ${role===r ? c.color+"44" : "#2a2a2a"}`,
-                          opacity: !canEditRole ? 0.5 : 1,
-                          cursor: !canEditRole ? "not-allowed" : "pointer"}}>
-                        <p className="text-sm" style={{color: role===r ? c.color : "#555"}}>{ROLE_LABELS[r]}</p>
+                        style={{fontFamily:"system-ui,sans-serif",backgroundColor:role===r?c.bg:"#111",border:`1px solid ${role===r?c.color+"44":"#2a2a2a"}`,opacity:!canEditRole?0.5:1,cursor:!canEditRole?"not-allowed":"pointer"}}>
+                        <p className="text-sm" style={{color:role===r?c.color:"#555"}}>{ROLE_LABELS[r]}</p>
                         <p className="text-xs text-gray-700 mt-0.5">{ROLE_PERMISSIONS[r].length} permissions</p>
                       </button>
                     );
@@ -524,12 +640,8 @@ function EditUserDrawer({ user, onClose, onSave }) {
                 <label className="block text-xs uppercase tracking-widest text-gray-500 mb-2" style={{fontFamily:"system-ui,sans-serif"}}>Account Status</label>
                 <div className="flex gap-2">
                   {[["active","Active","#5af07a"],["inactive","Inactive","#f05a5a"]].map(([v,l,c])=>(
-                    <button key={v} onClick={()=>setStatus(v)}
-                      className="flex-1 py-2.5 rounded text-sm"
-                      style={{fontFamily:"system-ui,sans-serif",
-                        backgroundColor: status===v ? c+"18" : "#111",
-                        color: status===v ? c : "#555",
-                        border:`1px solid ${status===v ? c+"44" : "#2a2a2a"}`}}>
+                    <button key={v} onClick={()=>setStatus(v)} className="flex-1 py-2.5 rounded text-sm"
+                      style={{fontFamily:"system-ui,sans-serif",backgroundColor:status===v?c+"18":"#111",color:status===v?c:"#555",border:`1px solid ${status===v?c+"44":"#2a2a2a"}`}}>
                       {l}
                     </button>
                   ))}
@@ -558,42 +670,34 @@ function EditUserDrawer({ user, onClose, onSave }) {
               {canOverride ? (
                 <div className="rounded-lg px-4 py-3 flex items-start gap-2" style={{backgroundColor:"#1a1a0a",border:"1px solid #3a3010"}}>
                   <span className="text-yellow-400 text-xs flex-shrink-0 mt-0.5">⚠</span>
-                  <p className="text-xs text-gray-400" style={{fontFamily:"system-ui,sans-serif"}}>
-                    Overrides are <strong className="text-white">per-user exceptions</strong>. Click any permission to toggle.
-                  </p>
+                  <p className="text-xs text-gray-400" style={{fontFamily:"system-ui,sans-serif"}}>Overrides are <strong className="text-white">per-user exceptions</strong>. Click any permission to toggle.</p>
                 </div>
               ) : (
                 <div className="rounded-lg px-4 py-3 flex items-start gap-2" style={{backgroundColor:"#0a1a2a",border:"1px solid #1e3a5a"}}>
                   <span className="text-blue-400 text-xs flex-shrink-0 mt-0.5">ℹ</span>
-                  <p className="text-xs text-gray-400" style={{fontFamily:"system-ui,sans-serif"}}>
-                    Only <strong className="text-white">Super Admin</strong> can create per-user overrides.
-                  </p>
+                  <p className="text-xs text-gray-400" style={{fontFamily:"system-ui,sans-serif"}}>Only <strong className="text-white">Super Admin</strong> can create per-user overrides.</p>
                 </div>
               )}
-              {Object.entries(ALL_PERMISSIONS).map(([module, perms]) => (
+              {Object.entries(ALL_PERMISSIONS).map(([module,perms])=>(
                 <div key={module}>
                   <p className="text-xs uppercase tracking-widest text-gray-600 mb-2" style={{fontFamily:"system-ui,sans-serif"}}>{module}</p>
                   <div className="space-y-1">
-                    {perms.map(perm => {
-                      const effective = effectivePerm(perm);
-                      const override  = overrides[perm];
-                      const isGranted  = override === "grant";
-                      const isRevoked  = override === "revoke";
+                    {perms.map(perm=>{
+                      const effective=effectivePerm(perm);
+                      const override=overrides[perm];
+                      const isGranted=override==="grant";
+                      const isRevoked=override==="revoke";
                       return (
-                        <div key={perm}
-                          onClick={() => canOverride && toggleOverride(perm, basePerms.includes(perm))}
+                        <div key={perm} onClick={()=>canOverride&&toggleOverride(perm,basePerms.includes(perm))}
                           className="flex items-center gap-3 px-3 py-2 rounded"
-                          style={{fontFamily:"system-ui,sans-serif",
-                            backgroundColor: effective ? (isGranted?"#0a1a0a":isRevoked?"#1a0a0a":"#0d0d0d") : "#0a0a0a",
-                            border:`1px solid ${isGranted?"#1e3a1e":isRevoked?"#3a1515":"#141414"}`,
-                            cursor: canOverride ? "pointer" : "default"}}>
+                          style={{fontFamily:"system-ui,sans-serif",backgroundColor:effective?(isGranted?"#0a1a0a":isRevoked?"#1a0a0a":"#0d0d0d"):"#0a0a0a",border:`1px solid ${isGranted?"#1e3a1e":isRevoked?"#3a1515":"#141414"}`,cursor:canOverride?"pointer":"default"}}>
                           <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
-                            style={{backgroundColor: effective?"#5af07a22":"transparent",border:`1.5px solid ${effective?"#5af07a":"#2a2a2a"}`}}>
+                            style={{backgroundColor:effective?"#5af07a22":"transparent",border:`1.5px solid ${effective?"#5af07a":"#2a2a2a"}`}}>
                             {effective && <span style={{fontSize:8,color:"#5af07a",lineHeight:1}}>✓</span>}
                           </div>
                           <span className="text-xs flex-1" style={{fontFamily:"monospace",color:effective?"#aaa":"#3a3a3a"}}>{perm}</span>
-                          {isGranted  && <span className="text-xs px-1.5 py-0.5 rounded" style={{backgroundColor:"#0a1a0a",color:"#5af07a",border:"1px solid #1e3a1e"}}>+granted</span>}
-                          {isRevoked  && <span className="text-xs px-1.5 py-0.5 rounded" style={{backgroundColor:"#1a0a0a",color:"#f05a5a",border:"1px solid #3a1515"}}>−revoked</span>}
+                          {isGranted && <span className="text-xs px-1.5 py-0.5 rounded" style={{backgroundColor:"#0a1a0a",color:"#5af07a",border:"1px solid #1e3a1e"}}>+granted</span>}
+                          {isRevoked && <span className="text-xs px-1.5 py-0.5 rounded" style={{backgroundColor:"#1a0a0a",color:"#f05a5a",border:"1px solid #3a1515"}}>−revoked</span>}
                         </div>
                       );
                     })}
@@ -603,15 +707,12 @@ function EditUserDrawer({ user, onClose, onSave }) {
             </div>
           )}
         </div>
-
         <div className="px-7 py-5 flex items-center justify-between flex-shrink-0" style={{borderTop:"1px solid #1a1a1a"}}>
           <button onClick={onClose} className="px-4 py-2 rounded text-sm"
             style={{fontFamily:"system-ui,sans-serif",backgroundColor:"#111",color:"#aaa",border:"1px solid #2a2a2a"}}>Cancel</button>
           <button onClick={()=>onSave({...user,role,status,overrides})}
             className="px-5 py-2 rounded text-sm font-medium bg-white text-black hover:opacity-80"
-            style={{fontFamily:"system-ui,sans-serif"}}>
-            Save Changes ✓
-          </button>
+            style={{fontFamily:"system-ui,sans-serif"}}>Save Changes ✓</button>
         </div>
       </div>
     </>
@@ -620,31 +721,32 @@ function EditUserDrawer({ user, onClose, onSave }) {
 
 // ── USER MANAGEMENT PAGE ──────────────────────────────────────────────────────
 export default function UserManagementPage() {
-  const [users,        setUsers]      = useState(USERS_SEED);
-  const [customRoles,  setCustomRoles]= useState([]);
-  const [search,       setSearch]     = useState("");
-  const [roleFilter,   setRoleFilter] = useState("All");
-  const [statusFilter, setStatusFilter]=useState("All");
-  const [showCreate,   setShowCreate] = useState(false);
-  const [showCreateRole, setShowCreateRole] = useState(false);
-  const [editing,      setEditing]    = useState(null);
+  const [users,          setUsers]         = useState(USERS_SEED);
+  const [customRoles,    setCustomRoles]   = useState([]);
+  const [search,         setSearch]        = useState("");
+  const [roleFilter,     setRoleFilter]    = useState("All");
+  const [statusFilter,   setStatusFilter]  = useState("All");
+  const [showCreate,     setShowCreate]    = useState(false);
+  const [showCreateRole, setShowCreateRole]= useState(false);
+  const [editing,        setEditing]       = useState(null);
 
-  const allRoles = [...ROLES, ...customRoles.map(r => r.id)];
-  const allRoleLabels = { ...ROLE_LABELS, ...Object.fromEntries(customRoles.map(r => [r.id, r.name])) };
-  const allRoleColors = { ...ROLE_COLORS, ...Object.fromEntries(customRoles.map(r => [r.id, r.color])) };
+  const allRoles      = [...ROLES, ...customRoles.map(r=>r.id)];
+  const allRoleLabels = { ...ROLE_LABELS, ...Object.fromEntries(customRoles.map(r=>[r.id,r.name])) };
+  const allRoleColors = { ...ROLE_COLORS, ...Object.fromEntries(customRoles.map(r=>[r.id,r.color])) };
 
   const filtered = useMemo(()=>users.filter(u=>{
     const q = search.toLowerCase();
-    return (!q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
-      && (roleFilter==="All"   || u.role===roleFilter)
-      && (statusFilter==="All" || u.status===statusFilter);
+    return (!q||u.name.toLowerCase().includes(q)||u.email.toLowerCase().includes(q))
+      &&(roleFilter==="All"||u.role===roleFilter)
+      &&(statusFilter==="All"||u.status===statusFilter);
   }),[users,search,roleFilter,statusFilter]);
 
   function handleCreate(form) {
     setUsers(p=>[...p,{
-      id: Date.now(), name:form.name, email:form.email,
+      id:Date.now(), name:form.name, email:form.email,
       role:form.role, dept:form.dept, status:"active",
       lastLogin:"Never", mustChangePassword:true, createdOn:"Mar 18, 2026",
+      taskAppInvited: false,
     }]);
     setShowCreate(false);
   }
@@ -655,17 +757,22 @@ export default function UserManagementPage() {
   }
 
   function handleSaveRole(role) {
-    setCustomRoles(p => [...p, role]);
+    setCustomRoles(p=>[...p,role]);
     setShowCreateRole(false);
   }
 
-  const stats = allRoles.map(r=>({ role:r, count:users.filter(u=>u.role===r).length }));
-  const inactive = users.filter(u=>u.status==="inactive").length;
+  // Called by TaskAppInviteButton after successful API response
+  function handleTaskAppInvited(userId) {
+    setUsers(p=>p.map(u=>u.id===userId?{...u,taskAppInvited:true}:u));
+  }
+
+  const stats         = allRoles.map(r=>({ role:r, count:users.filter(u=>u.role===r).length }));
+  const inactive      = users.filter(u=>u.status==="inactive").length;
   const pendingInvite = users.filter(u=>u.mustChangePassword).length;
+  const taskAppCount  = users.filter(u=>u.taskAppInvited).length;
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col" style={{backgroundColor:"#000"}}>
-      {/* Header */}
       <div className="px-8 pt-8 pb-0 flex-shrink-0">
         <div className="flex items-end justify-between mb-6">
           <div>
@@ -673,17 +780,16 @@ export default function UserManagementPage() {
             <h1 className="text-3xl font-normal text-white" style={{letterSpacing:"-0.02em"}}>User Management</h1>
           </div>
           <div className="flex items-center gap-3">
-            {pendingInvite>0&&(
+            {pendingInvite>0 && (
               <div className="rounded-lg px-4 py-2 flex items-center gap-2" style={{backgroundColor:"#1f1a0f",border:"1px solid #3a3010"}}>
                 <span style={{color:"#f0c85a",fontSize:12}}>⏳</span>
                 <span className="text-xs" style={{fontFamily:"system-ui,sans-serif",color:"#f0c85a"}}>{pendingInvite} pending invite{pendingInvite>1?"s":""}</span>
               </div>
             )}
-            {/* Create Role button — Super Admin only */}
-            {CURRENT_USER_ROLE === "super_admin" && (
-              <button onClick={() => setShowCreateRole(true)}
+            {CURRENT_USER_ROLE==="super_admin" && (
+              <button onClick={()=>setShowCreateRole(true)}
                 className="px-4 py-2 rounded text-sm font-medium hover:opacity-80 flex items-center gap-2"
-                style={{fontFamily:"system-ui,sans-serif", backgroundColor:"#111", color:"#aaa", border:"1px solid #2a2a2a"}}>
+                style={{fontFamily:"system-ui,sans-serif",backgroundColor:"#111",color:"#aaa",border:"1px solid #2a2a2a"}}>
                 🛡 Create Role
               </button>
             )}
@@ -695,19 +801,17 @@ export default function UserManagementPage() {
           </div>
         </div>
 
-        {/* Role summary cards — including custom roles */}
+        {/* Summary cards — Task App count added */}
         <div className="flex gap-3 mb-6 overflow-x-auto pb-1">
           {[...stats.map(s=>({
-            label: allRoleLabels[s.role] || s.role,
-            value: s.count,
-            color: allRoleColors[s.role]?.color || "#aaa",
+            label:    allRoleLabels[s.role]||s.role,
+            value:    s.count,
+            color:    allRoleColors[s.role]?.color||"#aaa",
             isCustom: !ROLES.includes(s.role),
-          })),{
-            label:"Inactive",
-            value:inactive,
-            color:"#555",
-            isCustom: false,
-          }].filter(s => s.value > 0 || !s.isCustom).map(s=>(
+          })),
+          { label:"Inactive", value:inactive,    color:"#555",    isCustom:false },
+          { label:"Task App", value:taskAppCount, color:"#5a9af0", isCustom:false },
+          ].filter(s=>s.value>0||!s.isCustom).map(s=>(
             <div key={s.label} className="rounded-lg px-4 py-3 flex-shrink-0 min-w-[100px]" style={{backgroundColor:"#0d0d0d",border:"1px solid #1e1e1e"}}>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <p className="text-xs uppercase tracking-widest" style={{fontFamily:"system-ui,sans-serif",color:"#444"}}>{s.label}</p>
@@ -716,8 +820,7 @@ export default function UserManagementPage() {
               <p className="text-2xl font-light" style={{fontFamily:"monospace",color:s.color}}>{s.value}</p>
             </div>
           ))}
-          {/* Custom roles with 0 users */}
-          {customRoles.filter(r => !users.some(u => u.role === r.id)).map(r => (
+          {customRoles.filter(r=>!users.some(u=>u.role===r.id)).map(r=>(
             <div key={r.id} className="rounded-lg px-4 py-3 flex-shrink-0 min-w-[100px]" style={{backgroundColor:"#0d0d0d",border:"1px solid #1e1e1e"}}>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <p className="text-xs uppercase tracking-widest" style={{fontFamily:"system-ui,sans-serif",color:"#444"}}>{r.name}</p>
@@ -728,7 +831,6 @@ export default function UserManagementPage() {
           ))}
         </div>
 
-        {/* Current user role notice */}
         <div className="mb-5 rounded-lg px-4 py-2.5 flex items-center gap-3" style={{backgroundColor:"#0a0a0a",border:"1px solid #1a1a1a"}}>
           <div className="w-2 h-2 rounded-full flex-shrink-0" style={{backgroundColor:ROLE_COLORS[CURRENT_USER_ROLE]?.color}}/>
           <p className="text-xs text-gray-500" style={{fontFamily:"system-ui,sans-serif"}}>
@@ -739,7 +841,6 @@ export default function UserManagementPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-8 pb-8">
-        {/* Filters */}
         <div className="flex items-center gap-3 mb-5 flex-wrap">
           <div className="relative flex-1 max-w-xs">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">🔍</span>
@@ -769,12 +870,11 @@ export default function UserManagementPage() {
           <span className="text-gray-600 text-sm" style={{fontFamily:"monospace"}}>{filtered.length} users</span>
         </div>
 
-        {/* Users table */}
         <div className="rounded-lg overflow-hidden" style={{border:"1px solid #1e1e1e"}}>
           <table className="w-full text-sm">
             <thead>
               <tr style={{backgroundColor:"#0a0a0a",borderBottom:"1px solid #1e1e1e"}}>
-                {["User","Department","Role","Status","Last Login","Invite",""].map(h=>(
+                {["User","Department","Role","Status","Last Login","HRIS Invite","Task App",""].map(h=>(
                   <th key={h} className="px-4 py-3 text-left font-normal text-gray-600 whitespace-nowrap"
                     style={{fontFamily:"system-ui,sans-serif",fontSize:10,textTransform:"uppercase",letterSpacing:"0.07em"}}>{h}</th>
                 ))}
@@ -788,13 +888,13 @@ export default function UserManagementPage() {
                     style={{borderBottom:i<filtered.length-1?"1px solid #141414":"none",backgroundColor:user.status==="inactive"?"#080808":"#0d0d0d"}}
                     onMouseEnter={e=>e.currentTarget.style.backgroundColor="#111"}
                     onMouseLeave={e=>e.currentTarget.style.backgroundColor=user.status==="inactive"?"#080808":"#0d0d0d"}>
+
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           <Avatar user={user} size={32}/>
-                          {user.status==="inactive"&&(
-                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-black"
-                              style={{backgroundColor:"#f05a5a"}}/>
+                          {user.status==="inactive" && (
+                            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-black" style={{backgroundColor:"#f05a5a"}}/>
                           )}
                         </div>
                         <div>
@@ -803,11 +903,12 @@ export default function UserManagementPage() {
                         </div>
                       </div>
                     </td>
+
                     <td className="px-4 py-3 text-gray-500 text-xs" style={{fontFamily:"system-ui,sans-serif"}}>{user.dept}</td>
+
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs px-2 py-0.5 rounded-full"
-                          style={{fontFamily:"system-ui,sans-serif",...rc}}>
+                        <span className="text-xs px-2 py-0.5 rounded-full" style={{fontFamily:"system-ui,sans-serif",...rc}}>
                           {allRoleLabels[user.role]||user.role}
                         </span>
                         {!ROLES.includes(user.role) && (
@@ -815,13 +916,17 @@ export default function UserManagementPage() {
                         )}
                       </div>
                     </td>
+
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
                         <div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor:user.status==="active"?"#5af07a":"#333"}}/>
                         <span className="text-xs capitalize" style={{fontFamily:"system-ui,sans-serif",color:user.status==="active"?"#5af07a":"#555"}}>{user.status}</span>
                       </div>
                     </td>
+
                     <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap" style={{fontFamily:"monospace"}}>{user.lastLogin}</td>
+
+                    {/* HRIS invite status */}
                     <td className="px-4 py-3">
                       {user.mustChangePassword && (
                         <span className="text-xs px-2 py-0.5 rounded"
@@ -830,6 +935,12 @@ export default function UserManagementPage() {
                         </span>
                       )}
                     </td>
+
+                    {/* Task App invite — opens confirmation modal */}
+                    <td className="px-4 py-3">
+                      <TaskAppInviteButton user={user} onInvited={handleTaskAppInvited}/>
+                    </td>
+
                     <td className="px-4 py-3">
                       <button onClick={()=>setEditing(user)}
                         className="text-xs px-3 py-1 rounded opacity-0 group-hover:opacity-100 hover:opacity-80"
@@ -844,17 +955,16 @@ export default function UserManagementPage() {
           </table>
         </div>
 
-        {/* Custom roles legend (if any) */}
-        {customRoles.length > 0 && (
-          <div className="mt-5 rounded-lg p-4" style={{ backgroundColor:"#0a0a0a", border:"1px solid #1a1a1a" }}>
-            <p className="text-xs uppercase tracking-widest text-gray-600 mb-3" style={{ fontFamily:"system-ui,sans-serif" }}>Custom Roles</p>
+        {customRoles.length>0 && (
+          <div className="mt-5 rounded-lg p-4" style={{backgroundColor:"#0a0a0a",border:"1px solid #1a1a1a"}}>
+            <p className="text-xs uppercase tracking-widest text-gray-600 mb-3" style={{fontFamily:"system-ui,sans-serif"}}>Custom Roles</p>
             <div className="flex flex-wrap gap-2">
-              {customRoles.map(r => (
+              {customRoles.map(r=>(
                 <div key={r.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-                  style={{ backgroundColor:r.color.bg, border:`1px solid ${r.color.color}33` }}>
-                  <span className="text-xs" style={{ fontFamily:"system-ui,sans-serif", color:r.color.color }}>{r.name}</span>
-                  <span className="text-xs" style={{ fontFamily:"monospace", color:r.color.color+"88" }}>{r.permissions.length} perms</span>
-                  {r.description && <span className="text-xs text-gray-600" style={{ fontFamily:"system-ui,sans-serif" }}>· {r.description}</span>}
+                  style={{backgroundColor:r.color.bg,border:`1px solid ${r.color.color}33`}}>
+                  <span className="text-xs" style={{fontFamily:"system-ui,sans-serif",color:r.color.color}}>{r.name}</span>
+                  <span className="text-xs" style={{fontFamily:"monospace",color:r.color.color+"88"}}>{r.permissions.length} perms</span>
+                  {r.description && <span className="text-xs text-gray-600" style={{fontFamily:"system-ui,sans-serif"}}>· {r.description}</span>}
                 </div>
               ))}
             </div>
@@ -862,26 +972,9 @@ export default function UserManagementPage() {
         )}
       </div>
 
-      {showCreate && (
-        <CreateUserDrawer
-          onClose={() => setShowCreate(false)}
-          onSave={handleCreate}
-          customRoles={customRoles}
-        />
-      )}
-      {showCreateRole && (
-        <CreateRoleDrawer
-          onClose={() => setShowCreateRole(false)}
-          onSave={handleSaveRole}
-        />
-      )}
-      {editing && (
-        <EditUserDrawer
-          user={editing}
-          onClose={() => setEditing(null)}
-          onSave={handleSave}
-        />
-      )}
+      {showCreate     && <CreateUserDrawer  onClose={()=>setShowCreate(false)}     onSave={handleCreate}    customRoles={customRoles}/>}
+      {showCreateRole && <CreateRoleDrawer  onClose={()=>setShowCreateRole(false)} onSave={handleSaveRole}/>}
+      {editing        && <EditUserDrawer    user={editing} onClose={()=>setEditing(null)} onSave={handleSave}/>}
     </div>
   );
 }
