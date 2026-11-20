@@ -5,6 +5,7 @@ import AppLayout      from "./layouts/AppLayout";
 import Dashboard      from "./pages/dashboard/Dashboard";
 import MyTasks        from "./pages/my-tasks/MyTasks";
 import Portal         from "./pages/portal/Portal";
+import Team           from "./pages/team/Team";
 import Login          from "./pages/auth/Login";
 import AcceptInvite   from "./pages/auth/AcceptInvite";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -25,11 +26,12 @@ function App() {
             <Route path="/my-tasks"              element={<MyTasks />} />
             <Route path="/projects/:projectId"   element={<MyTasks />} />
             <Route path="/portal"                element={<Portal />} />
+            <Route path="/team"                  element={<Team />} />
           </Route>
         </Route>
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/my-tasks" replace />} />
       </Routes>
     </BrowserRouter>
   );

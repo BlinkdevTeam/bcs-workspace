@@ -70,7 +70,7 @@ export default function AppLayout() {
 
   const pageLabel = pathname.startsWith("/projects/")
     ? (projects.find((p) => pathname === `/projects/${p.id}`)?.name ?? "Project")
-    : pathname.startsWith("/my-tasks") ? "My Tasks" : pathname.startsWith("/portal") ? "Employee Portal" : "Dashboard";
+    : pathname.startsWith("/my-tasks") ? "My Tasks" : pathname.startsWith("/portal") ? "Employee Portal" : pathname.startsWith("/team") ? "Team" : "Dashboard";
 
   const initials = user
     ? `${user.first_name?.[0] ?? ""}${user.last_name?.[0] ?? ""}`.toUpperCase()
