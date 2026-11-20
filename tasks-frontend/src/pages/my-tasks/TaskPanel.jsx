@@ -5,6 +5,7 @@ import {
   formatDate, StackedAvatars, PeopleDropdown,
 } from "./MyTasks";
 
+// NOTE: comments are still mock data — the backend has no comments endpoint yet.
 const MOCK_COMMENTS = [
   { id: 1, author: "KM", name: "Ken M.",  color: "#3b82f6", time: "2 hours ago", text: "This is blocked by the auth interceptor setup. Will finish after that." },
   { id: 2, author: "JD", name: "Jane D.", color: "#a78bfa", time: "1 hour ago",  text: "Got it. I can help with the silent refresh part if needed." },
@@ -16,10 +17,16 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
   const [commentText, setCommentText] = useState("");
   const [activeTab, setActiveTab]     = useState("description");
   const [openField, setOpenField]     = useState(null);
-  const [description, setDescription] = useState(task.description || "");
   const editorRef                     = useRef(null);
+  const PLACEHOLDER                   = "<p style='color:#666'>Add a description...</p>";
 
-  useEffect(() => { setDescription(task.description || ""); }, [task.id]);
+  // Load the description into the editor only when the task (or tab) changes.
+  // Never re-render it while typing, or the cursor jumps back to the start.
+  useEffect(() => {
+    if (activeTab === "description" && editorRef.current) {
+      editorRef.current.innerHTML = task.description || PLACEHOLDER;
+    }
+  }, [task.id, activeTab]);
 
   const execFormat = (cmd, val = null) => { document.execCommand(cmd, false, val); editorRef.current?.focus(); };
 
@@ -48,8 +55,13 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
 
       {/* Task title */}
       <div
+        key={task.id}
         contentEditable suppressContentEditableWarning style={s.taskTitle}
-        onBlur={(e) => onUpdate({ name: e.currentTarget.textContent.trim() })}
+        onBlur={(e) => {
+          const next = e.currentTarget.textContent.trim();
+          if (next && next !== task.name) onUpdate({ name: next });
+          else e.currentTarget.textContent = task.name;
+        }}
         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } }}
       >
         {task.name}
@@ -96,10 +108,16 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
         <MetaRow label="People">
           <div style={{ position: "relative" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => setOpenField(openField === "people" ? null : "people")}>
-              <StackedAvatars peopleIds={task.people} max={5} size={24} />
-              <span style={{ fontSize: 12, color: "#555" }}>
-                {task.people.map((id) => PEOPLE.find((p) => p.id === id)?.name ?? id).join(", ")}
-              </span>
+              {task.people.length > 0 ? (
+                <>
+                  <StackedAvatars peopleIds={task.people} max={5} size={24} />
+                  <span style={{ fontSize: 12, color: "#8a8a8a" }}>
+                    {task.people.map((id) => PEOPLE.find((p) => p.id === id)?.name ?? id).join(", ")}
+                  </span>
+                </>
+              ) : (
+                <span style={{ fontSize: 12, color: "#8a8a8a" }}>Unassigned</span>
+              )}
             </div>
             {openField === "people" && (
               <PeopleDropdown
@@ -113,13 +131,13 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
 
         <MetaRow label="Date">
           <div style={{ position: "relative" }}>
-            <span style={{ fontSize: 12, color: "#888", cursor: "pointer" }} onClick={() => setOpenField(openField === "date" ? null : "date")}>
+            <span style={{ fontSize: 12, color: "#b0b0b0", cursor: "pointer" }} onClick={() => setOpenField(openField === "date" ? null : "date")}>
               {formatDate(task.due) || "No date"}
             </span>
             {openField === "date" && (
               <FieldDropdown onClose={() => setOpenField(null)} width={180}>
                 <div style={{ padding: "8px 12px" }}>
-                  <input type="date" defaultValue={task.due} style={s.dateInput}
+                  <input type="date" defaultValue={task.due || ""} style={s.dateInput}
                     onChange={(e) => { onUpdate({ due: e.target.value }); setOpenField(null); }}
                     onClick={(e) => e.stopPropagation()} />
                 </div>
@@ -176,8 +194,12 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
               </ToolBtn>
             </div>
             <div ref={editorRef} contentEditable suppressContentEditableWarning style={s.editor}
-              dangerouslySetInnerHTML={{ __html: description || "<p style='color:#333'>Add a description...</p>" }}
-              onInput={(e) => { setDescription(e.currentTarget.innerHTML); onUpdate({ description: e.currentTarget.innerHTML }); }}
+              onBlur={(e) => {
+                const text = e.currentTarget.innerText.trim();
+                const html = text === "" || text === "Add a description..." ? "" : e.currentTarget.innerHTML;
+                if (html !== (task.description || "")) onUpdate({ description: html });
+                if (!html) e.currentTarget.innerHTML = PLACEHOLDER;
+              }}
               onFocus={(e) => {
                 if (e.currentTarget.innerText.trim() === "Add a description...") {
                   document.execCommand("selectAll"); document.execCommand("delete");
@@ -254,6 +276,7 @@ function ToolBtn({ onClick, title, children }) {
   const [hovered, setHovered] = useState(false);
   return (
     <div title={title} onClick={onClick}
+      onMouseDown={(e) => e.preventDefault()}
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
       style={{ ...s.toolBtn, ...(hovered ? s.toolBtnHover : {}) }}>
       {children}
@@ -263,33 +286,33 @@ function ToolBtn({ onClick, title, children }) {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const s = {
-  panel:           { width: "100%", height: "100%", background: "#0f0f0f", borderLeft: "0.5px solid #1e1e1e", display: "flex", flexDirection: "column", overflow: "hidden" },
-  header:          { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderBottom: "0.5px solid #1e1e1e", flexShrink: 0 },
+  panel:           { width: "100%", height: "100%", background: "#1a1a1a", borderLeft: "0.5px solid #2c2c2c", display: "flex", flexDirection: "column", overflow: "hidden" },
+  header:          { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderBottom: "0.5px solid #2c2c2c", flexShrink: 0 },
   headerLeft:      { display: "flex", alignItems: "center", gap: 10 },
   statusPill:      { fontSize: 11, padding: "2px 10px", borderRadius: 4 },
-  projectName:     { fontSize: 11, color: "#444" },
-  closeBtn:        { width: 26, height: 26, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#555" },
+  projectName:     { fontSize: 11, color: "#7a7a7a" },
+  closeBtn:        { width: 26, height: 26, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#8a8a8a" },
   taskTitle:       { fontSize: 15, fontWeight: 500, color: "#ddd", padding: "14px 16px 10px", outline: "none", lineHeight: 1.5, flexShrink: 0, cursor: "text" },
   metaGrid:        { padding: "4px 16px 12px", flexShrink: 0 },
-  metaRow:         { display: "flex", alignItems: "center", padding: "7px 0", borderBottom: "0.5px solid #1a1a1a" },
-  metaLabel:       { fontSize: 11, color: "#444", width: 72, flexShrink: 0 },
+  metaRow:         { display: "flex", alignItems: "center", padding: "7px 0", borderBottom: "0.5px solid #262626" },
+  metaLabel:       { fontSize: 11, color: "#7a7a7a", width: 72, flexShrink: 0 },
   metaValue:       { flex: 1 },
   pill:            { display: "inline-flex", alignItems: "center", fontSize: 11, padding: "2px 10px", borderRadius: 4, whiteSpace: "nowrap", cursor: "pointer" },
-  fieldDropdown:   { position: "absolute", top: 30, left: 0, background: "#1a1a1a", border: "0.5px solid #333", borderRadius: 8, zIndex: 300, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" },
-  ddItem:          { display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, color: "#777" },
-  dateInput:       { background: "#222", border: "0.5px solid #444", borderRadius: 4, padding: "4px 8px", fontSize: 12, color: "#aaa", outline: "none", width: "100%", colorScheme: "dark" },
-  divider:         { height: "0.5px", background: "#1a1a1a", flexShrink: 0 },
-  tabs:            { display: "flex", borderBottom: "0.5px solid #1a1a1a", flexShrink: 0 },
-  tab:             { fontSize: 12, padding: "10px 16px", color: "#444", cursor: "pointer", borderBottom: "1.5px solid transparent", marginBottom: "-0.5px", display: "flex", alignItems: "center", gap: 6 },
+  fieldDropdown:   { position: "absolute", top: 30, left: 0, background: "#262626", border: "0.5px solid #454545", borderRadius: 8, zIndex: 300, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" },
+  ddItem:          { display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, color: "#a5a5a5" },
+  dateInput:       { background: "#303030", border: "0.5px solid #444", borderRadius: 4, padding: "4px 8px", fontSize: 12, color: "#aaa", outline: "none", width: "100%", colorScheme: "dark" },
+  divider:         { height: "0.5px", background: "#262626", flexShrink: 0 },
+  tabs:            { display: "flex", borderBottom: "0.5px solid #262626", flexShrink: 0 },
+  tab:             { fontSize: 12, padding: "10px 16px", color: "#7a7a7a", cursor: "pointer", borderBottom: "1.5px solid transparent", marginBottom: "-0.5px", display: "flex", alignItems: "center", gap: 6 },
   tabActive:       { color: "#ccc", borderBottomColor: "#ccc" },
-  tabBadge:        { fontSize: 10, background: "#1e1e1e", color: "#555", padding: "1px 6px", borderRadius: 10 },
+  tabBadge:        { fontSize: 10, background: "#2c2c2c", color: "#8a8a8a", padding: "1px 6px", borderRadius: 10 },
   tabContent:      { flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" },
   wysiwyg:         { display: "flex", flexDirection: "column", flex: 1 },
-  toolbar:         { display: "flex", alignItems: "center", gap: 2, padding: "8px 12px", borderBottom: "0.5px solid #1a1a1a", flexWrap: "wrap", flexShrink: 0 },
-  toolBtn:         { width: 26, height: 26, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#555" },
-  toolBtnHover:    { background: "#1e1e1e", color: "#aaa" },
-  toolSep:         { width: "0.5px", height: 16, background: "#222", margin: "0 4px" },
-  editor:          { flex: 1, padding: "14px 16px", fontSize: 13, color: "#999", lineHeight: 1.7, outline: "none", overflowY: "auto", minHeight: 160 },
+  toolbar:         { display: "flex", alignItems: "center", gap: 2, padding: "8px 12px", borderBottom: "0.5px solid #262626", flexWrap: "wrap", flexShrink: 0 },
+  toolBtn:         { width: 26, height: 26, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#8a8a8a" },
+  toolBtnHover:    { background: "#2c2c2c", color: "#aaa" },
+  toolSep:         { width: "0.5px", height: 16, background: "#303030", margin: "0 4px" },
+  editor:          { flex: 1, padding: "14px 16px", fontSize: 13, color: "#fff", lineHeight: 1.7, outline: "none", overflowY: "auto", minHeight: 160 },
   commentsSection: { display: "flex", flexDirection: "column", flex: 1, padding: "12px 16px", gap: 16 },
   commentList:     { display: "flex", flexDirection: "column", gap: 16, flex: 1 },
   noComments:      { fontSize: 12, color: "#333", textAlign: "center", padding: "24px 0" },
@@ -297,13 +320,13 @@ const s = {
   commentAvatar:   { width: 26, height: 26, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#fff", fontWeight: 600, flexShrink: 0 },
   commentBody:     { flex: 1 },
   commentMeta:     { display: "flex", alignItems: "center", gap: 8, marginBottom: 4 },
-  commentName:     { fontSize: 12, color: "#777", fontWeight: 500 },
+  commentName:     { fontSize: 12, color: "#a5a5a5", fontWeight: 500 },
   commentTime:     { fontSize: 10, color: "#333" },
-  commentText:     { fontSize: 12, color: "#888", lineHeight: 1.6 },
-  commentInput:    { display: "flex", gap: 10, paddingTop: 12, borderTop: "0.5px solid #1a1a1a", flexShrink: 0 },
+  commentText:     { fontSize: 12, color: "#b0b0b0", lineHeight: 1.6 },
+  commentInput:    { display: "flex", gap: 10, paddingTop: 12, borderTop: "0.5px solid #262626", flexShrink: 0 },
   commentInputBox: { flex: 1, display: "flex", flexDirection: "column", gap: 8 },
-  commentTextarea: { background: "#1a1a1a", border: "0.5px solid #333", borderRadius: 6, padding: "8px 10px", fontSize: 12, color: "#aaa", outline: "none", resize: "none", width: "100%", lineHeight: 1.6, colorScheme: "dark" },
+  commentTextarea: { background: "#262626", border: "0.5px solid #454545", borderRadius: 6, padding: "8px 10px", fontSize: 12, color: "#aaa", outline: "none", resize: "none", width: "100%", lineHeight: 1.6, colorScheme: "dark" },
   commentActions:  { display: "flex", justifyContent: "flex-end" },
-  sendBtn:         { fontSize: 11, padding: "5px 14px", borderRadius: 5, background: "transparent", border: "0.5px solid #333", color: "#444", cursor: "pointer" },
+  sendBtn:         { fontSize: 11, padding: "5px 14px", borderRadius: 5, background: "transparent", border: "0.5px solid #454545", color: "#7a7a7a", cursor: "pointer" },
   sendBtnActive:   { borderColor: "#3b82f6", color: "#3b82f6" },
 };

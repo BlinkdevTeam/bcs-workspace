@@ -20,8 +20,9 @@ function App() {
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/my-tasks"  element={<MyTasks />} />
+            <Route path="/dashboard"             element={<Dashboard />} />
+            <Route path="/my-tasks"              element={<MyTasks />} />
+            <Route path="/projects/:projectId"   element={<MyTasks />} />
           </Route>
         </Route>
 

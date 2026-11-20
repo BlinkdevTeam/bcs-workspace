@@ -1,7 +1,10 @@
-import { useState, useRef, useEffect } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { NavLink, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../store/slices/authSlice";
+import api from "../services/api";
+import NewProjectModal from "../components/NewProjectModal";
+import { createProject, projectColor } from "../services/projects";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 const Icon = ({ d, d2, circle, rect, viewBox = "0 0 24 24" }) => (
@@ -38,19 +41,36 @@ const NAV_ITEMS = [
   },
 ];
 
-const PROJECTS = [
-  { id: 1, name: "BCS Workspace", color: "#3b82f6" },
-  { id: 2, name: "HRIS Redesign", color: "#22c55e" },
-  { id: 3, name: "Mobile App", color: "#facc15" },
-];
-
 // ── AppLayout ─────────────────────────────────────────────────────────────────
 export default function AppLayout() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { user } = useSelector((state) => state.auth);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  const [projects, setProjects]                 = useState([]);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+
+  const loadProjects = useCallback(async () => {
+    try {
+      const { data } = await api.get("/projects");
+      setProjects(data.projects);
+    } catch {
+      // keep whatever is already shown
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProjects();
+    window.addEventListener("projects:changed", loadProjects);
+    return () => window.removeEventListener("projects:changed", loadProjects);
+  }, [loadProjects]);
+
+  const pageLabel = pathname.startsWith("/projects/")
+    ? (projects.find((p) => pathname === `/projects/${p.id}`)?.name ?? "Project")
+    : pathname.startsWith("/my-tasks") ? "My Tasks" : "Dashboard";
 
   const initials = user
     ? `${user.first_name?.[0] ?? ""}${user.last_name?.[0] ?? ""}`.toUpperCase()
@@ -77,6 +97,7 @@ export default function AppLayout() {
 
   return (
     <div style={styles.shell}>
+      <style>{HOVER_CSS}</style>
       {/* ── Sidebar ── */}
       <aside style={styles.sidebar}>
         {/* Logo */}
@@ -116,13 +137,21 @@ export default function AppLayout() {
         {/* Projects */}
         <div style={styles.projectsSection}>
           <div style={styles.sectionLabel}>Projects</div>
-          {PROJECTS.map((p) => (
-            <div key={p.id} style={styles.projectItem}>
-              <div style={{ ...styles.projectDot, background: p.color }} />
+          {projects.map((p) => (
+            <NavLink
+              key={p.id}
+              to={`/projects/${p.id}`}
+              style={({ isActive }) => ({
+                ...styles.projectItem,
+                ...(isActive ? styles.projectItemActive : {}),
+              })}
+            >
+              <div style={{ ...styles.projectDot, background: projectColor(p.name) }} />
               {p.name}
-            </div>
+            </NavLink>
           ))}
-          <div style={styles.addProject}>+ Add project</div>
+          {projects.length === 0 && <div style={styles.noProjects}>No projects yet</div>}
+          <div style={styles.addProject} onClick={() => setShowProjectModal(true)}>+ Add project</div>
         </div>
 
         {/* Bottom user row */}
@@ -142,15 +171,15 @@ export default function AppLayout() {
         {/* Topbar */}
         <header style={styles.topbar}>
           <div style={styles.breadcrumb}>
-            <span style={{ color: "#555" }}>Tasks</span>
+            <span style={{ color: "#8a8a8a" }}>Tasks</span>
             <span style={{ color: "#2a2a2a", margin: "0 6px" }}>/</span>
-            <span style={{ color: "#888" }}>Dashboard</span>
+            <span style={{ color: "#b0b0b0" }}>{pageLabel}</span>
           </div>
 
           <div style={styles.topbarRight}>
             {/* Search */}
             <div style={styles.search}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#454545" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
               </svg>
               <input placeholder="Search tasks..." style={styles.searchInput} />
@@ -192,7 +221,7 @@ export default function AppLayout() {
                   <DropdownItem
                     icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>}
                     label="Employee Portal"
-                    onClick={() => { navigate("/portal"); setDropdownOpen(false); }}
+                    onClick={() => { window.open(HRIS_URL, "_blank", "noopener"); setDropdownOpen(false); }}
                   />
                   <DropdownItem
                     icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>}
@@ -219,6 +248,10 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {showProjectModal && (
+        <NewProjectModal onClose={() => setShowProjectModal(false)} onCreate={async (form) => { const p = await createProject(form); navigate(`/projects/${p.id}`); }} />
+      )}
     </div>
   );
 }
@@ -244,47 +277,61 @@ function DropdownItem({ icon, label, onClick, danger }) {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+// Hover feedback for everything clickable in the app (anything styled with cursor: pointer).
+// Inline styles can't do :hover, so this one rule covers the whole app.
+// The Employee Portal is the HRIS app. Override with VITE_HRIS_URL in tasks-frontend/.env when deployed.
+const HRIS_URL = import.meta.env.VITE_HRIS_URL || "http://localhost:5173";
+
+const HOVER_CSS = `
+  [style*="cursor: pointer"] { transition: background-color .12s, color .12s, box-shadow .12s; }
+  [style*="cursor: pointer"]:hover { box-shadow: inset 0 0 0 999px rgba(255,255,255,0.07); }
+  [style*="cursor: pointer"]:not([style*="background"]):hover { color: #fff !important; }
+  [style*="cursor: pointer"]:not([style*="background"]):hover svg { stroke: currentColor; }
+`;
+
 const styles = {
-  shell: { display: "flex", height: "100vh", background: "#141414", fontFamily: "var(--font-sans, sans-serif)", color: "#c9c9c9", overflow: "hidden" },
-  sidebar: { width: 220, minWidth: 220, background: "#0f0f0f", borderRight: "0.5px solid #1e1e1e", display: "flex", flexDirection: "column" },
-  logoWrapper: { padding: "16px 16px 12px", borderBottom: "0.5px solid #1a1a1a" },
+  shell: { display: "flex", height: "100vh", background: "#202020", fontFamily: "var(--font-sans, sans-serif)", color: "#c9c9c9", overflow: "hidden" },
+  sidebar: { width: 220, minWidth: 220, background: "#1a1a1a", borderRight: "0.5px solid #2c2c2c", display: "flex", flexDirection: "column" },
+  logoWrapper: { padding: "16px 16px 12px", borderBottom: "0.5px solid #262626" },
   logoText: { fontSize: 13, fontWeight: 500, color: "#fff", letterSpacing: "1.5px", textTransform: "uppercase" },
   logoSub: { fontSize: 10, color: "#333", marginTop: 2 },
   navSection: { padding: "16px 10px 6px" },
   sectionLabel: { fontSize: 9, color: "#333", textTransform: "uppercase", letterSpacing: "1.2px", padding: "0 6px", marginBottom: 4 },
-  navItem: { display: "flex", alignItems: "center", gap: 9, padding: "7px 8px", borderRadius: 6, cursor: "pointer", fontSize: 13, color: "#555", textDecoration: "none", transition: "all 0.15s" },
-  navItemActive: { background: "#1e1e1e", color: "#fff" },
+  navItem: { display: "flex", alignItems: "center", gap: 9, padding: "7px 8px", borderRadius: 6, cursor: "pointer", fontSize: 13, color: "#8a8a8a", textDecoration: "none", transition: "all 0.15s" },
+  navItemActive: { background: "#2c2c2c", color: "#fff" },
   navIcon: { width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  badge: { marginLeft: "auto", fontSize: 10, background: "#2a2a2a", color: "#666", padding: "1px 6px", borderRadius: 10 },
+  badge: { marginLeft: "auto", fontSize: 10, background: "#383838", color: "#9a9a9a", padding: "1px 6px", borderRadius: 10 },
   badgeRed: { background: "rgba(239,68,68,0.15)", color: "#f87171" },
-  divider: { height: "0.5px", background: "#1a1a1a", margin: "6px 10px" },
+  divider: { height: "0.5px", background: "#262626", margin: "6px 10px" },
   projectsSection: { flex: 1, overflowY: "auto", padding: "0 10px 10px" },
-  projectItem: { display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, cursor: "pointer", fontSize: 12, color: "#444" },
+  projectItem: { display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", borderRadius: 6, cursor: "pointer", fontSize: 12, color: "#9a9a9a", textDecoration: "none" },
+  projectItemActive: { background: "#2c2c2c", color: "#fff" },
   projectDot: { width: 6, height: 6, borderRadius: "50%", flexShrink: 0 },
-  addProject: { fontSize: 11, color: "#2a2a2a", padding: "6px 8px 6px 22px", cursor: "pointer" },
-  sidebarBottom: { padding: 10, borderTop: "0.5px solid #1a1a1a" },
+  addProject: { fontSize: 11, color: "#9a9a9a", padding: "6px 8px 6px 22px", cursor: "pointer" },
+  noProjects: { fontSize: 11, color: "#333", padding: "6px 8px" },
+  sidebarBottom: { padding: 10, borderTop: "0.5px solid #262626" },
   userRow: { display: "flex", alignItems: "center", gap: 9, padding: "7px 8px", borderRadius: 6 },
-  avatarSm: { width: 26, height: 26, borderRadius: "50%", background: "#1e1e1e", border: "0.5px solid #2e2e2e", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#777", flexShrink: 0 },
-  userName: { fontSize: 12, color: "#666" },
+  avatarSm: { width: 26, height: 26, borderRadius: "50%", background: "#2c2c2c", border: "0.5px solid #3d3d3d", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#a5a5a5", flexShrink: 0 },
+  userName: { fontSize: 12, color: "#9a9a9a" },
   userRole: { fontSize: 10, color: "#333" },
   main: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" },
-  topbar: { height: 48, borderBottom: "0.5px solid #1e1e1e", display: "flex", alignItems: "center", padding: "0 20px", gap: 12, background: "#141414", flexShrink: 0 },
+  topbar: { height: 48, borderBottom: "0.5px solid #2c2c2c", display: "flex", alignItems: "center", padding: "0 20px", gap: 12, background: "#202020", flexShrink: 0 },
   breadcrumb: { fontSize: 12 },
   topbarRight: { marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 },
-  search: { display: "flex", alignItems: "center", gap: 6, background: "#1a1a1a", border: "0.5px solid #222", borderRadius: 6, padding: "5px 10px" },
-  searchInput: { background: "transparent", border: "none", outline: "none", fontSize: 12, color: "#777", width: 140 },
-  iconBtn: { width: 28, height: 28, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#444", position: "relative" },
+  search: { display: "flex", alignItems: "center", gap: 6, background: "#262626", border: "0.5px solid #303030", borderRadius: 6, padding: "5px 10px" },
+  searchInput: { background: "transparent", border: "none", outline: "none", fontSize: 12, color: "#a5a5a5", width: 140 },
+  iconBtn: { width: 28, height: 28, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#7a7a7a", position: "relative" },
   notifDot: { width: 5, height: 5, background: "#f97316", borderRadius: "50%", position: "absolute", top: 4, right: 4 },
-  avatarBtn: { width: 30, height: 30, borderRadius: "50%", background: "#222", border: "0.5px solid #333", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#999", cursor: "pointer" },
+  avatarBtn: { width: 30, height: 30, borderRadius: "50%", background: "#303030", border: "0.5px solid #454545", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#999", cursor: "pointer" },
   avatarBtnOpen: { borderColor: "#fff", color: "#fff" },
-  dropdown: { position: "absolute", top: 36, right: 0, width: 200, background: "#1a1a1a", border: "0.5px solid #2a2a2a", borderRadius: 8, overflow: "hidden", zIndex: 100 },
-  ddHeader: { padding: "12px 14px", borderBottom: "0.5px solid #222" },
+  dropdown: { position: "absolute", top: 36, right: 0, width: 200, background: "#262626", border: "0.5px solid #383838", borderRadius: 8, overflow: "hidden", zIndex: 100 },
+  ddHeader: { padding: "12px 14px", borderBottom: "0.5px solid #303030" },
   ddName: { fontSize: 13, color: "#ccc", fontWeight: 500 },
-  ddEmail: { fontSize: 11, color: "#444", marginTop: 1 },
-  ddItem: { display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", fontSize: 12, color: "#666", cursor: "pointer" },
-  ddItemHover: { background: "#222", color: "#ccc" },
-  ddItemDanger: { color: "#555" },
+  ddEmail: { fontSize: 11, color: "#7a7a7a", marginTop: 1 },
+  ddItem: { display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", fontSize: 12, color: "#9a9a9a", cursor: "pointer" },
+  ddItemHover: { background: "#303030", color: "#ccc" },
+  ddItemDanger: { color: "#8a8a8a" },
   ddItemDangerHover: { background: "rgba(239,68,68,0.05)", color: "#f87171" },
-  ddDivider: { height: "0.5px", background: "#222", margin: "2px 0" },
+  ddDivider: { height: "0.5px", background: "#303030", margin: "2px 0" },
   content: { flex: 1, overflowY: "auto" },
 };

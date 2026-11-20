@@ -13,7 +13,8 @@ router.use("/health", healthRouter);
 
 // Future routes added here as sprints progress
 router.use("/auth", require("./auth"));
-// router.use("/projects", require("./projects"));
-// router.use("/tasks",    require("./tasks"));
+router.use("/projects", require("./projects"));
+router.use("/tasks",    require("./tasks"));
+router.use("/employees", require("./employees"));
 
 module.exports = router;

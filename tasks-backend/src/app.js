@@ -1,15 +1,16 @@
 "use strict";
- 
+
 const express      = require("express");
 const helmet       = require("helmet");
 const cors         = require("cors");
 const morgan       = require("morgan");
+const cookieParser = require("cookie-parser");
 const router       = require("./routes");
 const errorHandler = require("./middleware/errorHandler");
 const notFound     = require("./middleware/notFound");
- 
+
 const app = express();
- 
+
 app.use(
   cors({
     origin: [
@@ -23,10 +24,11 @@ app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
- 
+app.use(cookieParser());   // lets the auth routes read the refresh-token cookie
+
 app.use("/api", router);
- 
+
 app.use(notFound);
 app.use(errorHandler);
- 
+
 module.exports = app;

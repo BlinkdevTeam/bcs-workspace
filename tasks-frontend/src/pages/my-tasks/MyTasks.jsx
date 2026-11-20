@@ -1,42 +1,53 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
+import api from "../../services/api";
+import { selectUser } from "../../store/slices/authSlice";
 import TaskPanel from "./TaskPanel";
+import { projectColor } from "../../services/projects";
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-const MOCK_TASKS = [
-  { id: 1,  name: "Set up Redux store",                priority: "high",   status: "progress", project: "BCS Workspace", due: "2026-03-13", people: ["KM", "JD"], done: false, parent_id: null, description: "" },
-  { id: 2,  name: "Configure Axios interceptors",      priority: "high",   status: "progress", project: "BCS Workspace", due: "2026-03-13", people: ["KM"],       done: false, parent_id: null, description: "" },
-  { id: 3,  name: "Build ProtectedRoute component",    priority: "medium", status: "todo",     project: "BCS Workspace", due: "2026-03-14", people: ["KM", "AL"], done: false, parent_id: null, description: "" },
-  { id: 4,  name: "Health check endpoint + CORS",      priority: "medium", status: "review",   project: "BCS Workspace", due: "2026-03-13", people: ["JD"],       done: false, parent_id: null, description: "" },
-  { id: 5,  name: "Create tasks-backend boilerplate",  priority: "low",    status: "done",     project: "BCS Workspace", due: "2026-03-10", people: ["KM"],       done: true,  parent_id: null, description: "" },
-  { id: 11, name: "Install redux toolkit",             priority: "high",   status: "done",     project: "BCS Workspace", due: "2026-03-13", people: ["KM"],       done: true,  parent_id: 1,    description: "" },
-  { id: 12, name: "Create authSlice",                  priority: "medium", status: "progress", project: "BCS Workspace", due: "2026-03-13", people: ["KM", "JD"],done: false, parent_id: 1,    description: "" },
-  { id: 13, name: "Create uiSlice",                    priority: "low",    status: "todo",     project: "BCS Workspace", due: "2026-03-14", people: ["KM"],       done: false, parent_id: 1,    description: "" },
-  { id: 14, name: "Set baseURL and withCredentials",   priority: "high",   status: "done",     project: "BCS Workspace", due: "2026-03-13", people: ["KM"],       done: true,  parent_id: 2,    description: "" },
-  { id: 15, name: "Add request interceptor",           priority: "high",   status: "progress", project: "BCS Workspace", due: "2026-03-13", people: ["KM"],       done: false, parent_id: 2,    description: "" },
-  { id: 16, name: "Add silent refresh on 401",         priority: "high",   status: "todo",     project: "BCS Workspace", due: "2026-03-13", people: ["JD"],       done: false, parent_id: 2,    description: "" },
-  { id: 6,  name: "Design HRIS employee profile page", priority: "high",   status: "todo",     project: "HRIS Redesign", due: "2026-03-10", people: ["AL"],       done: false, parent_id: null, description: "" },
-  { id: 7,  name: "Build department management UI",    priority: "medium", status: "progress", project: "HRIS Redesign", due: "2026-03-14", people: ["JD", "AL"],done: false, parent_id: null, description: "" },
-  { id: 8,  name: "Set up React Router for HRIS",      priority: "low",    status: "done",     project: "HRIS Redesign", due: "2026-03-09", people: ["AL"],       done: true,  parent_id: null, description: "" },
-  { id: 17, name: "Design personal info tab",          priority: "high",   status: "todo",     project: "HRIS Redesign", due: "2026-03-10", people: ["AL"],       done: false, parent_id: 6,    description: "" },
-  { id: 18, name: "Design job info tab",               priority: "medium", status: "todo",     project: "HRIS Redesign", due: "2026-03-10", people: ["AL", "KM"],done: false, parent_id: 6,    description: "" },
-  { id: 9,  name: "Design onboarding screens",         priority: "high",   status: "todo",     project: "Mobile App",    due: "2026-03-11", people: ["KM"],       done: false, parent_id: null, description: "" },
-  { id: 10, name: "API integration for mobile auth",   priority: "medium", status: "progress", project: "Mobile App",    due: "2026-03-13", people: ["JD", "KM"],done: false, parent_id: null, description: "" },
-];
+// ── Helpers for API data ──────────────────────────────────────────────────────
+const PERSON_COLORS   = ["#3b82f6", "#a78bfa", "#f97316", "#22c55e", "#ec4899", "#14b8a6"];
 
-const PROJECT_COLORS = {
-  "BCS Workspace": "#3b82f6",
-  "HRIS Redesign": "#22c55e",
-  "Mobile App":    "#facc15",
-};
+function hashIndex(str, mod) {
+  const v = str || "";
+  let h = 0;
+  for (let i = 0; i < v.length; i++) h = (h * 31 + v.charCodeAt(i)) >>> 0;
+  return h % mod;
+}
 
-export const PEOPLE = [
-  { id: "KM", name: "Ken M.",  color: "#3b82f6" },
-  { id: "JD", name: "Jane D.", color: "#a78bfa" },
-  { id: "AL", name: "Alex L.", color: "#f97316" },
-];
+// Filled from GET /employees. Mutated in place so the helpers below can read it.
+export const PEOPLE = [];
+
+function setPeople(employees) {
+  PEOPLE.length = 0;
+  employees.forEach((e) =>
+    PEOPLE.push({
+      id:       e.id,
+      name:     e.name,
+      initials: e.initials || "?",
+      color:    PERSON_COLORS[hashIndex(e.id, PERSON_COLORS.length)],
+    })
+  );
+}
+
+// API task -> the shape the UI already uses (people = array of employee ids)
+const toUi = (t) => ({
+  id:          t.id,
+  name:        t.name,
+  priority:    t.priority || "medium",
+  status:      t.status,
+  project:     t.project,
+  project_id:  t.project_id,
+  due:         t.due,
+  people:      (t.people || []).map((p) => p.id),
+  done:        t.done,
+  parent_id:   t.parent_id ?? null,
+  description: t.description || "",
+});
 
 export const STATUSES = [
-  { value: "todo",     label: "To Do",       color: "#555",    bg: "#1e1e1e" },
+  { value: "todo",     label: "To Do",       color: "#8a8a8a",    bg: "#2c2c2c" },
   { value: "progress", label: "In Progress", color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
   { value: "review",   label: "In Review",   color: "#a78bfa", bg: "rgba(167,139,250,0.1)" },
   { value: "done",     label: "Done",        color: "#22c55e", bg: "rgba(34,197,94,0.1)" },
@@ -66,6 +77,7 @@ export function formatDate(dateStr) {
 
 export function dateColor(dateStr, done) {
   if (done) return "#444";
+  if (!dateStr) return "#555";
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const d     = new Date(dateStr);
   if (d < today)                                    return "#f97316";
@@ -91,7 +103,7 @@ export function StackedAvatars({ peopleIds, max = 3, size = 22 }) {
               style={{
                 width: size, height: size, borderRadius: "50%",
                 background: p?.color ?? "#555",
-                border: "1.5px solid #141414",
+                border: "1.5px solid #202020",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: size * 0.38, color: "#fff", fontWeight: 600,
                 position: "absolute", left: i * (size - overlap),
@@ -99,16 +111,16 @@ export function StackedAvatars({ peopleIds, max = 3, size = 22 }) {
                 userSelect: "none",
               }}
             >
-              {id}
+              {p?.initials ?? "?"}
             </div>
           );
         })}
         {overflow > 0 && (
           <div style={{
             width: size, height: size, borderRadius: "50%",
-            background: "#2a2a2a", border: "1.5px solid #141414",
+            background: "#383838", border: "1.5px solid #202020",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: size * 0.34, color: "#666",
+            fontSize: size * 0.34, color: "#9a9a9a",
             position: "absolute", left: visible.length * (size - overlap),
             zIndex: 0,
           }}>
@@ -145,7 +157,7 @@ export function PeopleDropdown({ selected, onChange, onClose }) {
         const checked = selected.includes(p.id);
         return (
           <div key={p.id} style={pd.item} onClick={() => toggle(p.id)}>
-            <div style={{ ...pd.avatar, background: p.color }}>{p.id}</div>
+            <div style={{ ...pd.avatar, background: p.color }}>{p.initials}</div>
             <span style={pd.name}>{p.name}</span>
             <div style={{ ...pd.check, ...(checked ? { background: "#22c55e", borderColor: "#22c55e" } : {}) }}>
               {checked && (
@@ -162,17 +174,24 @@ export function PeopleDropdown({ selected, onChange, onClose }) {
 }
 
 const pd = {
-  menu:   { position: "absolute", top: 32, left: 0, background: "#1a1a1a", border: "0.5px solid #333", borderRadius: 8, zIndex: 200, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.5)", minWidth: 180 },
-  title:  { fontSize: 10, color: "#444", padding: "8px 12px 4px", textTransform: "uppercase", letterSpacing: 1 },
+  menu:   { position: "absolute", top: 32, left: 0, background: "#262626", border: "0.5px solid #454545", borderRadius: 8, zIndex: 200, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.5)", minWidth: 180 },
+  title:  { fontSize: 10, color: "#7a7a7a", padding: "8px 12px 4px", textTransform: "uppercase", letterSpacing: 1 },
   item:   { display: "flex", alignItems: "center", gap: 9, padding: "7px 12px", cursor: "pointer" },
   avatar: { width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#fff", fontWeight: 600, flexShrink: 0 },
-  name:   { fontSize: 12, color: "#888", flex: 1 },
+  name:   { fontSize: 12, color: "#b0b0b0", flex: 1 },
   check:  { width: 14, height: 14, borderRadius: 3, border: "0.5px solid #555", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
 };
 
 // ── MyTasks ───────────────────────────────────────────────────────────────────
 export default function MyTasks() {
-  const [tasks, setTasks]                 = useState(MOCK_TASKS);
+  const me = useSelector(selectUser);
+  const { projectId } = useParams();   // set on /projects/:projectId
+  const inProject = !!projectId;
+
+  const [tasks, setTasks]                 = useState([]);
+  const [projects, setProjects]           = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [loadError, setLoadError]         = useState("");
   const [search, setSearch]               = useState("");
   const [collapsed, setCollapsed]         = useState(new Set());
   const [expandedTasks, setExpandedTasks] = useState(new Set());
@@ -182,23 +201,88 @@ export default function MyTasks() {
     priority: new Set(), project: new Set(), person: new Set(), date: new Set(),
   });
 
-  const updateTask = (id, patch) => {
+  const load = useCallback(async () => {
+    try {
+      const [t, e, p] = await Promise.all([
+        api.get("/tasks"), api.get("/employees"), api.get("/projects"),
+      ]);
+      setPeople(e.data.employees);
+      setProjects(p.data.projects);
+      setTasks(t.data.tasks.map(toUi));
+      setSelectedTask(null);
+      setLoadError("");
+    } catch (err) {
+      setLoadError(err.response?.data?.message || "Could not load tasks.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Reload when a project is created from anywhere (e.g. the sidebar)
+  useEffect(() => {
+    window.addEventListener("projects:changed", load);
+    return () => window.removeEventListener("projects:changed", load);
+  }, [load]);
+
+  // Switching project (or going to My Tasks) closes the panel and clears the search
+  useEffect(() => { setSelectedTask(null); setSearch(""); }, [projectId]);
+
+  // Optimistic update, then save. If saving fails, reload the real data.
+  const updateTask = async (id, patch) => {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
     setSelectedTask((prev) => (prev?.id === id ? { ...prev, ...patch } : prev));
+
+    const body = {};
+    if (patch.name        !== undefined) body.name         = patch.name;
+    if (patch.description !== undefined) body.description  = patch.description;
+    if (patch.priority    !== undefined) body.priority     = patch.priority;
+    if (patch.status      !== undefined) body.status       = patch.status;
+    else if (patch.done   !== undefined) body.done         = patch.done;
+    if (patch.due         !== undefined) body.due          = patch.due;
+    if (patch.people      !== undefined) body.assignee_ids = patch.people;
+
+    try {
+      await api.patch(`/tasks/${id}`, body);
+    } catch (err) {
+      alert(err.response?.data?.message || "Could not save that change.");
+      load();
+    }
   };
 
-  const addSubtask = (parentId) => {
-    const parent  = tasks.find((t) => t.id === parentId);
-    const newTask = {
-      id: Date.now(), name: "New subtask", priority: "medium", status: "todo",
-      project: parent.project, due: parent.due, people: [...parent.people],
-      done: false, parent_id: parentId, description: "",
-    };
-    setTasks((prev) => [...prev, newTask]);
-    setExpandedTasks((prev) => new Set([...prev, parentId]));
+  const addSubtask = async (parentId) => {
+    const parent = tasks.find((t) => t.id === parentId);
+    if (!parent) return;
+    try {
+      const { data } = await api.post("/tasks", {
+        name: "New subtask", parent_id: parentId,
+        due: parent.due, assignee_ids: parent.people,
+      });
+      setTasks((prev) => [...prev, toUi(data.task)]);
+      setExpandedTasks((prev) => new Set([...prev, parentId]));
+    } catch (err) {
+      alert(err.response?.data?.message || "Could not add subtask.");
+    }
   };
 
-  // ── Drag ──────────────────────────────────────────────────────────────────────
+  const addTask = async (projectId) => {
+    const pid = projectId || projects[0]?.id;
+    if (!pid) { alert("There are no projects yet."); return; }
+    try {
+      const { data } = await api.post("/tasks", {
+        name: "New task", project_id: pid,
+        assignee_ids: me?.id ? [me.id] : [],
+      });
+      const created = toUi(data.task);
+      setTasks((prev) => [...prev, created]);
+      setSelectedTask(created);
+    } catch (err) {
+      alert(err.response?.data?.message || "Could not create task.");
+    }
+  };
+
+  // ── Drag (order is local only for now) ───────────────────────────────────────
   const dragId                    = useRef(null);
   const dragOverId                = useRef(null);
   const [dragState, setDragState] = useState({ dragging: null, over: null });
@@ -242,13 +326,22 @@ export default function MyTasks() {
   const today    = new Date(); today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
 
+  // "My Tasks": main tasks I'm assigned to, or whose subtasks are assigned to me
+  const myTopLevelIds = new Set();
+  tasks.forEach((t) => {
+    if (me?.id && t.people.includes(me.id)) myTopLevelIds.add(t.parent_id ?? t.id);
+  });
+
   const filtered = tasks.filter((t) => {
     if (t.parent_id !== null) return false;
+    if (inProject) { if (t.project_id !== projectId) return false; }
+    else if (!myTopLevelIds.has(t.id)) return false;
     if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false;
     if (filters.priority.size && !filters.priority.has(t.priority)) return false;
     if (filters.project.size  && !filters.project.has(t.project))   return false;
     if (filters.person.size   && !t.people.some((p) => filters.person.has(p))) return false;
     if (filters.date.size) {
+      if (!t.due) return false;
       const d = new Date(t.due);
       if (filters.date.has("overdue")  && d < today)                                    return true;
       if (filters.date.has("today")    && d.toDateString() === today.toDateString())    return true;
@@ -258,11 +351,15 @@ export default function MyTasks() {
     return true;
   });
 
-  const grouped = filtered.reduce((acc, t) => {
-    if (!acc[t.project]) acc[t.project] = [];
-    acc[t.project].push(t);
-    return acc;
-  }, {});
+  // Project page: one table for that project (no group header).
+  // My Tasks: my tasks, grouped by project.
+  const currentProject = projects.find((p) => p.id === projectId);
+  const groups = inProject
+    ? (currentProject ? [{ id: currentProject.id, name: currentProject.name, tasks: filtered }] : [])
+    : projects
+        .map((p) => ({ id: p.id, name: p.name, tasks: filtered.filter((x) => x.project_id === p.id) }))
+        .filter((g) => g.tasks.length > 0)
+        .sort((a, b) => a.name.localeCompare(b.name));
 
   const panelOpen = !!selectedTask;
 
@@ -275,10 +372,14 @@ export default function MyTasks() {
         <div style={s.pageHeader}>
           <div style={s.topRow}>
             <div>
-              <div style={s.title}>My Tasks</div>
-              <div style={s.sub}>Tasks assigned to you across all projects</div>
+              <div style={s.title}>{inProject ? (currentProject?.name ?? "Project") : "My Tasks"}</div>
+              <div style={s.sub}>
+                {inProject
+                  ? (currentProject?.description || "All tasks in this project")
+                  : "Tasks assigned to you across all projects"}
+              </div>
             </div>
-            <button style={s.newBtn}>+ New task</button>
+            <button style={s.newBtn} onClick={() => addTask(inProject ? projectId : groups[0]?.id)}>+ New task</button>
           </div>
 
           <div style={s.filterBar} onClick={(e) => e.stopPropagation()}>
@@ -293,10 +394,12 @@ export default function MyTasks() {
               {PRIORITIES.map((p) => <FilterOption key={p.value} label={p.label} checked={filters.priority.has(p.value)} onClick={() => toggleFilter("priority", p.value)} />)}
             </FilterDropdown>
 
+            {!inProject && (
             <FilterDropdown label="Project" isOpen={openMenu === "project"} isActive={filters.project.size > 0} onToggle={() => setOpenMenu(openMenu === "project" ? null : "project")}
               icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" /></svg>}>
-              {Object.keys(PROJECT_COLORS).map((p) => <FilterOption key={p} label={p} checked={filters.project.has(p)} onClick={() => toggleFilter("project", p)} />)}
+              {projects.map((p) => <FilterOption key={p.id} label={p.name} checked={filters.project.has(p.name)} onClick={() => toggleFilter("project", p.name)} />)}
             </FilterDropdown>
+            )}
 
             <FilterDropdown label="Person" isOpen={openMenu === "person"} isActive={filters.person.size > 0} onToggle={() => setOpenMenu(openMenu === "person" ? null : "person")}
               icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4" /><path d="M20 21a8 8 0 10-16 0" /></svg>}>
@@ -326,17 +429,21 @@ export default function MyTasks() {
               </tr>
             </thead>
             <tbody>
-              {Object.keys(grouped).length === 0 ? (
-                <tr><td colSpan={5} style={s.emptyState}>No tasks match your filters</td></tr>
+              {groups.length === 0 ? (
+                <tr><td colSpan={5} style={s.emptyState}>
+                  {loading ? "Loading tasks..." : loadError || (hasActiveFilters ? "No tasks match your filters" : inProject ? "Project not found." : "No tasks assigned to you yet.")}
+                </td></tr>
               ) : (
-                Object.entries(grouped).map(([project, projectTasks]) => (
+                groups.map((g) => (
                   <ProjectGroup
-                    key={project}
-                    project={project} tasks={projectTasks} allTasks={tasks}
-                    color={PROJECT_COLORS[project] || "#888"}
-                    collapsed={collapsed.has(project)}
-                    onToggleCollapse={() => toggleCollapse(project)}
+                    key={g.id}
+                    project={g.name} tasks={g.tasks} allTasks={tasks}
+                    color={projectColor(g.name)}
+                    collapsed={collapsed.has(g.name)}
+                    onToggleCollapse={() => toggleCollapse(g.name)}
                     onUpdateTask={updateTask} onAddSubtask={addSubtask}
+                    onAddTask={() => addTask(g.id)}
+                    showHeader={!inProject}
                     expandedTasks={expandedTasks} onToggleExpand={toggleExpand}
                     selectedTaskId={selectedTask?.id}
                     onRowClick={(task) => setSelectedTask(task.id === selectedTask?.id ? null : task)}
@@ -360,25 +467,28 @@ export default function MyTasks() {
           />
         </div>
       )}
+
     </div>
   );
 }
 
 // ── ProjectGroup ──────────────────────────────────────────────────────────────
-function ProjectGroup({ project, tasks, allTasks, color, collapsed, onToggleCollapse, onUpdateTask, onAddSubtask, expandedTasks, onToggleExpand, selectedTaskId, onRowClick, dragState, onDragStart, onDragOver, onDragEnd }) {
+function ProjectGroup({ project, tasks, allTasks, color, collapsed, onToggleCollapse, onUpdateTask, onAddSubtask, onAddTask, showHeader = true, expandedTasks, onToggleExpand, selectedTaskId, onRowClick, dragState, onDragStart, onDragOver, onDragEnd }) {
   return (
     <>
-      <tr>
-        <td colSpan={5} style={{ padding: 0, background: "#141414" }}>
-          <div style={s.groupHeader} onClick={onToggleCollapse}>
-            <div style={{ ...s.groupDot, background: color }} />
-            <span style={s.groupName}>{project}</span>
-            <span style={s.groupCount}>{tasks.length}</span>
-            <span style={s.groupChevron}>{collapsed ? "▸" : "▾"}</span>
-          </div>
-        </td>
-      </tr>
-      {!collapsed && (
+      {showHeader && (
+        <tr>
+          <td colSpan={5} style={{ padding: 0, background: "#202020" }}>
+            <div style={s.groupHeader} onClick={onToggleCollapse}>
+              <div style={{ ...s.groupDot, background: color }} />
+              <span style={s.groupName}>{project}</span>
+              <span style={s.groupCount}>{tasks.length}</span>
+              <span style={s.groupChevron}>{collapsed ? "▸" : "▾"}</span>
+            </div>
+          </td>
+        </tr>
+      )}
+      {(!showHeader || !collapsed) && (
         <>
           {tasks.map((task) => {
             const subtasks   = allTasks.filter((t) => t.parent_id === task.id);
@@ -399,7 +509,7 @@ function ProjectGroup({ project, tasks, allTasks, color, collapsed, onToggleColl
           })}
           <tr>
             <td colSpan={5} style={s.addTaskCell}>
-              <div style={s.addTaskBtn}>+ Add task</div>
+              <div style={s.addTaskBtn} onClick={onAddTask}>+ Add task</div>
             </td>
           </tr>
         </>
@@ -427,7 +537,7 @@ function TaskRow({ task, subtasks = [], isExpanded, onToggleExpand, onUpdate, on
     ...(isSelected ? s.selectedRow : {}),
     opacity:    isDragging ? 0.4 : 1,
     borderTop:  isDragOver ? "2px solid #3b82f6" : undefined,
-    background: isSelected ? "rgba(59,130,246,0.06)" : isDragOver ? "rgba(59,130,246,0.04)" : isSubtask ? "#191919" : "#141414",
+    background: isSelected ? "rgba(59,130,246,0.06)" : isDragOver ? "rgba(59,130,246,0.04)" : isSubtask ? "#252525" : "#202020",
   };
 
   return (
@@ -454,7 +564,7 @@ function TaskRow({ task, subtasks = [], isExpanded, onToggleExpand, onUpdate, on
             )}
             {isSubtask && <div style={s.subtaskLine} />}
             {!isSubtask && (
-              <div style={{ ...s.expandBtn, opacity: subtasks.length > 0 ? 1 : 0, pointerEvents: subtasks.length > 0 ? "auto" : "none" }}
+              <div style={s.expandBtn} title={isExpanded ? "Hide subtasks" : "Show subtasks"}
                 onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}>
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                   <path d={isExpanded ? "M2 4l3 3 3-3" : "M4 2l3 3-3 3"} stroke="#555" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -478,7 +588,11 @@ function TaskRow({ task, subtasks = [], isExpanded, onToggleExpand, onUpdate, on
               </span>
             )}
             {!isSubtask && subtasks.length > 0 && (
-              <span style={s.subtaskBadge}>{subtasks.filter((s) => s.done).length}/{subtasks.length}</span>
+              <span style={s.subtaskBadge}>{subtasks.filter((x) => x.done).length}/{subtasks.length}</span>
+            )}
+            {!isSubtask && (
+              <span style={s.addSubInline} title="Add subtask"
+                onClick={(e) => { e.stopPropagation(); onAddSubtask(); }}>+ subtask</span>
             )}
           </div>
         </td>
@@ -523,7 +637,9 @@ function TaskRow({ task, subtasks = [], isExpanded, onToggleExpand, onUpdate, on
         <td style={s.cell} onClick={(e) => e.stopPropagation()}>
           <div style={{ position: "relative" }}>
             <div style={{ cursor: "pointer", display: "inline-flex" }} onClick={(e) => toggleCell("people", e)}>
-              <StackedAvatars peopleIds={task.people} max={3} size={22} />
+              {task.people.length > 0
+                ? <StackedAvatars peopleIds={task.people} max={3} size={22} />
+                : <span style={{ fontSize: 11, color: "#7a7a7a" }}>Unassigned</span>}
             </div>
             {openCell === "people" && (
               <PeopleDropdown
@@ -539,12 +655,12 @@ function TaskRow({ task, subtasks = [], isExpanded, onToggleExpand, onUpdate, on
         <td style={s.cell} onClick={(e) => e.stopPropagation()}>
           <div style={{ position: "relative" }}>
             <div style={{ cursor: "pointer" }} onClick={(e) => toggleCell("date", e)}>
-              <span style={{ fontSize: 11, color: dateColor(task.due, task.done) }}>{formatDate(task.due)}</span>
+              <span style={{ fontSize: 11, color: dateColor(task.due, task.done) }}>{formatDate(task.due) || "No date"}</span>
             </div>
             {openCell === "date" && (
               <CellDropdown onClose={() => setOpenCell(null)} width={160}>
                 <div style={{ padding: "8px 12px" }}>
-                  <input type="date" defaultValue={task.due} style={s.dateInput}
+                  <input type="date" defaultValue={task.due || ""} style={s.dateInput}
                     onChange={(e) => { onUpdate({ due: e.target.value }); setOpenCell(null); }}
                     onClick={(e) => e.stopPropagation()} />
                 </div>
@@ -566,8 +682,8 @@ function TaskRow({ task, subtasks = [], isExpanded, onToggleExpand, onUpdate, on
               onDragStart={() => {}} onDragOver={() => {}} onDragEnd={() => {}}
               isSubtask={true} />
           ))}
-          <tr style={{ background: "#191919", borderBottom: "0.5px solid #1e1e1e" }}>
-            <td colSpan={5} style={{ paddingLeft: 56, paddingTop: 7, paddingBottom: 7, background: "#191919" }}>
+          <tr style={{ background: "#252525", borderBottom: "0.5px solid #2c2c2c" }}>
+            <td colSpan={5} style={{ paddingLeft: 56, paddingTop: 7, paddingBottom: 7, background: "#252525" }}>
               <div style={s.addSubtaskBtn} onClick={() => onAddSubtask()}>+ Add subtask</div>
             </td>
           </tr>
@@ -615,54 +731,55 @@ function FilterOption({ label, checked, onClick }) {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const s = {
-  root:            { background: "#141414", height: "100%", minHeight: "100vh", display: "flex", overflow: "hidden" },
+  root:            { background: "#202020", height: "100%", minHeight: "100vh", display: "flex", overflow: "hidden" },
   tableArea:       { display: "flex", flexDirection: "column", overflow: "hidden", transition: "width 0.25s ease", minWidth: 0 },
-  panelArea:       { width: "42%", minWidth: 340, maxWidth: 520, flexShrink: 0, borderLeft: "0.5px solid #1e1e1e", overflow: "hidden", display: "flex", flexDirection: "column" },
-  pageHeader:      { padding: "24px 24px 0", flexShrink: 0, background: "#141414" },
+  panelArea:       { width: "42%", minWidth: 340, maxWidth: 520, flexShrink: 0, borderLeft: "0.5px solid #2c2c2c", overflow: "hidden", display: "flex", flexDirection: "column" },
+  pageHeader:      { padding: "24px 24px 0", flexShrink: 0, background: "#202020" },
   topRow:          { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
   title:           { fontSize: 16, fontWeight: 500, color: "#fff" },
-  sub:             { fontSize: 12, color: "#555", marginTop: 3 },
-  newBtn:          { fontSize: 12, padding: "7px 16px", borderRadius: 6, background: "transparent", color: "#777", border: "0.5px solid #444", cursor: "pointer" },
+  sub:             { fontSize: 12, color: "#8a8a8a", marginTop: 3 },
+  newBtn:          { fontSize: 12, padding: "7px 16px", borderRadius: 6, background: "transparent", color: "#a5a5a5", border: "0.5px solid #444", cursor: "pointer" },
   filterBar:       { display: "flex", alignItems: "center", gap: 8, marginBottom: 16, flexWrap: "wrap" },
-  searchBox:       { display: "flex", alignItems: "center", gap: 6, background: "#1a1a1a", border: "0.5px solid #333", borderRadius: 6, padding: "5px 10px" },
-  searchInput:     { background: "transparent", border: "none", outline: "none", fontSize: 12, color: "#888", width: 140 },
-  filterSep:       { width: "0.5px", height: 16, background: "#333" },
-  filterBtn:       { display: "flex", alignItems: "center", gap: 5, fontSize: 11, padding: "5px 10px", borderRadius: 6, border: "0.5px solid #333", background: "transparent", color: "#666", cursor: "pointer", whiteSpace: "nowrap" },
-  filterBtnActive: { borderColor: "#777", color: "#ccc", background: "#1e1e1e" },
-  dropdownMenu:    { position: "absolute", top: 30, left: 0, background: "#1a1a1a", border: "0.5px solid #333", borderRadius: 8, minWidth: 160, zIndex: 100, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" },
-  ddItem:          { padding: "8px 14px", fontSize: 12, color: "#777", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 },
+  searchBox:       { display: "flex", alignItems: "center", gap: 6, background: "#262626", border: "0.5px solid #454545", borderRadius: 6, padding: "5px 10px" },
+  searchInput:     { background: "transparent", border: "none", outline: "none", fontSize: 12, color: "#b0b0b0", width: 140 },
+  filterSep:       { width: "0.5px", height: 16, background: "#454545" },
+  filterBtn:       { display: "flex", alignItems: "center", gap: 5, fontSize: 11, padding: "5px 10px", borderRadius: 6, border: "0.5px solid #454545", background: "transparent", color: "#9a9a9a", cursor: "pointer", whiteSpace: "nowrap" },
+  filterBtnActive: { borderColor: "#777", color: "#ccc", background: "#2c2c2c" },
+  dropdownMenu:    { position: "absolute", top: 30, left: 0, background: "#262626", border: "0.5px solid #454545", borderRadius: 8, minWidth: 160, zIndex: 100, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" },
+  ddItem:          { padding: "8px 14px", fontSize: 12, color: "#a5a5a5", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 },
   ddCheck:         { width: 12, height: 12, borderRadius: 3, border: "0.5px solid #555", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   ddCheckOn:       { background: "#22c55e", borderColor: "#22c55e" },
-  clearBtn:        { fontSize: 11, color: "#666", cursor: "pointer", padding: "5px 8px" },
-  tableWrapper:    { flex: 1, overflowY: "auto", overflowX: "auto", background: "#141414", minHeight: 0 },
-  table:           { width: "100%", borderCollapse: "collapse", minWidth: 560, background: "#141414" },
-  th:              { padding: "8px 12px", fontSize: 10, color: "#666", textTransform: "uppercase", letterSpacing: 1, fontWeight: 500, whiteSpace: "nowrap", background: "#141414", position: "sticky", top: 0, zIndex: 10, textAlign: "left", borderBottom: "0.5px solid #252525" },
+  clearBtn:        { fontSize: 11, color: "#9a9a9a", cursor: "pointer", padding: "5px 8px" },
+  tableWrapper:    { flex: 1, overflowY: "auto", overflowX: "auto", background: "#202020", minHeight: 0 },
+  table:           { width: "100%", borderCollapse: "collapse", minWidth: 560, background: "#202020" },
+  th:              { padding: "8px 12px", fontSize: 10, color: "#9a9a9a", textTransform: "uppercase", letterSpacing: 1, fontWeight: 500, whiteSpace: "nowrap", background: "#202020", position: "sticky", top: 0, zIndex: 10, textAlign: "left", borderBottom: "0.5px solid #323232" },
   groupHeader:     { display: "flex", alignItems: "center", gap: 8, padding: "14px 24px 8px", cursor: "pointer" },
   groupDot:        { width: 7, height: 7, borderRadius: "50%", flexShrink: 0 },
-  groupName:       { fontSize: 12, color: "#888", fontWeight: 500 },
-  groupCount:      { fontSize: 10, color: "#555", background: "#1e1e1e", padding: "1px 7px", borderRadius: 10 },
-  groupChevron:    { marginLeft: "auto", fontSize: 10, color: "#444" },
-  taskRow:         { borderBottom: "0.5px solid #1e1e1e", transition: "opacity 0.15s, background 0.15s", cursor: "pointer" },
+  groupName:       { fontSize: 12, color: "#b0b0b0", fontWeight: 500 },
+  groupCount:      { fontSize: 10, color: "#8a8a8a", background: "#2c2c2c", padding: "1px 7px", borderRadius: 10 },
+  groupChevron:    { marginLeft: "auto", fontSize: 10, color: "#7a7a7a" },
+  taskRow:         { borderBottom: "0.5px solid #2c2c2c", transition: "opacity 0.15s, background 0.15s", cursor: "pointer" },
   subtaskRow:      { cursor: "default" },
   selectedRow:     { borderLeft: "2px solid #3b82f6" },
   taskNameCell:    { display: "flex", alignItems: "center", gap: 8, padding: "10px 12px 10px 0" },
   dragHandle:      { display: "flex", alignItems: "center", justifyContent: "center", width: 14, flexShrink: 0, opacity: 0.4, cursor: "grab" },
   expandBtn:       { width: 16, height: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer", borderRadius: 3 },
-  subtaskLine:     { width: 1, height: 20, background: "#2a2a2a", flexShrink: 0, marginRight: 4 },
+  subtaskLine:     { width: 1, height: 20, background: "#383838", flexShrink: 0, marginRight: 4 },
   checkbox:        { width: 14, height: 14, borderRadius: 3, border: "1px solid #555", flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" },
   checkboxDone:    { background: "#22c55e", borderColor: "#22c55e" },
   taskName:        { fontSize: 13, color: "#bbb", cursor: "default", userSelect: "none", flex: 1 },
-  taskNameDone:    { color: "#444", textDecoration: "line-through" },
-  subtaskName:     { fontSize: 12, color: "#888" },
-  subtaskBadge:    { fontSize: 10, color: "#555", background: "#1e1e1e", padding: "1px 6px", borderRadius: 10, whiteSpace: "nowrap", flexShrink: 0 },
-  nameInput:       { background: "#1e1e1e", border: "0.5px solid #555", borderRadius: 4, padding: "2px 8px", fontSize: 13, color: "#fff", outline: "none", width: "100%", flex: 1 },
+  taskNameDone:    { color: "#7a7a7a", textDecoration: "line-through" },
+  subtaskName:     { fontSize: 12, color: "#b0b0b0" },
+  subtaskBadge:    { fontSize: 10, color: "#8a8a8a", background: "#2c2c2c", padding: "1px 6px", borderRadius: 10, whiteSpace: "nowrap", flexShrink: 0 },
+  nameInput:       { background: "#2c2c2c", border: "0.5px solid #555", borderRadius: 4, padding: "2px 8px", fontSize: 13, color: "#fff", outline: "none", width: "100%", flex: 1 },
   cell:            { padding: "10px 12px", fontSize: 12, background: "transparent", verticalAlign: "middle" },
   pill:            { display: "inline-flex", alignItems: "center", fontSize: 11, padding: "2px 10px", borderRadius: 4, whiteSpace: "nowrap" },
-  cellDropdown:    { position: "absolute", top: 28, left: 0, background: "#1a1a1a", border: "0.5px solid #333", borderRadius: 8, zIndex: 200, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" },
+  cellDropdown:    { position: "absolute", top: 28, left: 0, background: "#262626", border: "0.5px solid #454545", borderRadius: 8, zIndex: 200, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" },
   cdItem:          { display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", cursor: "pointer" },
-  dateInput:       { background: "#222", border: "0.5px solid #444", borderRadius: 4, padding: "4px 8px", fontSize: 12, color: "#aaa", outline: "none", width: "100%", colorScheme: "dark" },
-  addTaskCell:     { padding: "8px 24px", borderBottom: "0.5px solid #1e1e1e", background: "#141414" },
-  addTaskBtn:      { fontSize: 12, color: "#444", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 },
-  addSubtaskBtn:   { fontSize: 11, color: "#3a3a3a", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 },
-  emptyState:      { padding: 48, textAlign: "center", fontSize: 12, color: "#444", background: "#141414" },
+  dateInput:       { background: "#303030", border: "0.5px solid #444", borderRadius: 4, padding: "4px 8px", fontSize: 12, color: "#aaa", outline: "none", width: "100%", colorScheme: "dark" },
+  addTaskCell:     { padding: "8px 24px", borderBottom: "0.5px solid #2c2c2c", background: "#202020" },
+  addTaskBtn:      { fontSize: 12, color: "#7a7a7a", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 },
+  addSubInline:    { fontSize: 11, color: "#9a9a9a", cursor: "pointer", padding: "1px 8px", borderRadius: 4, border: "0.5px solid #383838", marginLeft: 6, whiteSpace: "nowrap" },
+  addSubtaskBtn:   { fontSize: 11, color: "#707070", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 },
+  emptyState:      { padding: 48, textAlign: "center", fontSize: 12, color: "#7a7a7a", background: "#202020" },
 };
