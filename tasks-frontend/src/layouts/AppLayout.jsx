@@ -70,7 +70,7 @@ export default function AppLayout() {
 
   const pageLabel = pathname.startsWith("/projects/")
     ? (projects.find((p) => pathname === `/projects/${p.id}`)?.name ?? "Project")
-    : pathname.startsWith("/my-tasks") ? "My Tasks" : "Dashboard";
+    : pathname.startsWith("/my-tasks") ? "My Tasks" : pathname.startsWith("/portal") ? "Employee Portal" : "Dashboard";
 
   const initials = user
     ? `${user.first_name?.[0] ?? ""}${user.last_name?.[0] ?? ""}`.toUpperCase()
@@ -216,12 +216,12 @@ export default function AppLayout() {
                   <DropdownItem
                     icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>}
                     label="My Profile"
-                    onClick={() => { navigate("/profile"); setDropdownOpen(false); }}
+                    onClick={() => { navigate("/portal"); setDropdownOpen(false); }}
                   />
                   <DropdownItem
                     icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>}
                     label="Employee Portal"
-                    onClick={() => { window.open(HRIS_URL, "_blank", "noopener"); setDropdownOpen(false); }}
+                    onClick={() => { navigate("/portal"); setDropdownOpen(false); }}
                   />
                   <DropdownItem
                     icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>}
@@ -279,9 +279,6 @@ function DropdownItem({ icon, label, onClick, danger }) {
 // ── Styles ────────────────────────────────────────────────────────────────────
 // Hover feedback for everything clickable in the app (anything styled with cursor: pointer).
 // Inline styles can't do :hover, so this one rule covers the whole app.
-// The Employee Portal is the HRIS app. Override with VITE_HRIS_URL in tasks-frontend/.env when deployed.
-const HRIS_URL = import.meta.env.VITE_HRIS_URL || "http://localhost:5173";
-
 const HOVER_CSS = `
   [style*="cursor: pointer"] { transition: background-color .12s, color .12s, box-shadow .12s; }
   [style*="cursor: pointer"]:hover { box-shadow: inset 0 0 0 999px rgba(255,255,255,0.07); }
