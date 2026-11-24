@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from "react";
+import StatusMenu from "../../components/StatusMenu";
+import TaskFiles, { useTaskFiles } from "../../components/TaskFiles";
 import {
   PEOPLE, STATUSES, PRIORITIES,
-  getStatus, getPriority,
+  getStatus, getPriority, statusesFor,
   formatDate, StackedAvatars, PeopleDropdown,
 } from "./MyTasks";
 
@@ -17,6 +19,7 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
   const [commentText, setCommentText] = useState("");
   const [activeTab, setActiveTab]     = useState("description");
   const [openField, setOpenField]     = useState(null);
+  const taskFiles                     = useTaskFiles(task.id);
   const editorRef                     = useRef(null);
   const PLACEHOLDER                   = "<p style='color:#666'>Add a description...</p>";
 
@@ -76,12 +79,12 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
               {status.label}
             </span>
             {openField === "status" && (
-              <FieldDropdown onClose={() => setOpenField(null)}>
-                {STATUSES.map((st) => (
-                  <div key={st.value} style={s.ddItem} onClick={() => { onUpdate({ status: st.value, done: st.value === "done" }); setOpenField(null); }}>
-                    <span style={{ ...s.pill, color: st.color, background: st.bg }}>{st.label}</span>
-                  </div>
-                ))}
+              <FieldDropdown onClose={() => setOpenField(null)} width={220}>
+                <StatusMenu
+                  options={statusesFor(task.project_id)} projectId={task.project_id}
+                  itemStyle={s.ddItem} pillStyle={s.pill}
+                  onPick={(st) => { onUpdate({ status: st.value, done: st.value === "done" }); setOpenField(null); }}
+                />
               </FieldDropdown>
             )}
           </div>
@@ -129,7 +132,7 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
           </div>
         </MetaRow>
 
-        <MetaRow label="Date">
+        <MetaRow label="Due date">
           <div style={{ position: "relative" }}>
             <span style={{ fontSize: 12, color: "#b0b0b0", cursor: "pointer" }} onClick={() => setOpenField(openField === "date" ? null : "date")}>
               {formatDate(task.due) || "No date"}
@@ -151,10 +154,11 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
 
       {/* Tabs */}
       <div style={s.tabs}>
-        {["description", "comments"].map((tab) => (
+        {["description", "comments", "files"].map((tab) => (
           <div key={tab} style={{ ...s.tab, ...(activeTab === tab ? s.tabActive : {}) }} onClick={() => setActiveTab(tab)}>
             {tab.charAt(0).toUpperCase() + tab.slice(1)}
             {tab === "comments" && comments.length > 0 && <span style={s.tabBadge}>{comments.length}</span>}
+            {tab === "files" && taskFiles.files.length > 0 && <span style={s.tabBadge}>{taskFiles.files.length}</span>}
           </div>
         ))}
       </div>
@@ -207,6 +211,11 @@ export default function TaskPanel({ task, onClose, onUpdate }) {
               }}
             />
           </div>
+        )}
+
+        {/* Files */}
+        {activeTab === "files" && (
+          <TaskFiles taskId={task.id} files={taskFiles.files} setFiles={taskFiles.setFiles} loading={taskFiles.loading} />
         )}
 
         {/* Comments */}

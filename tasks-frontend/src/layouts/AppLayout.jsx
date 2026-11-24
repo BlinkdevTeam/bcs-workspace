@@ -70,7 +70,7 @@ export default function AppLayout() {
 
   const pageLabel = pathname.startsWith("/projects/")
     ? (projects.find((p) => pathname === `/projects/${p.id}`)?.name ?? "Project")
-    : pathname.startsWith("/my-tasks") ? "My Tasks" : pathname.startsWith("/portal") ? "Employee Portal" : pathname.startsWith("/team") ? "Team" : "Dashboard";
+    : pathname.startsWith("/my-tasks") ? "My Tasks" : pathname.startsWith("/portal") ? "Employee Portal" : pathname.startsWith("/team") ? "Team" : pathname.startsWith("/profile") ? "My Profile" : "Dashboard";
 
   const initials = user
     ? `${user.first_name?.[0] ?? ""}${user.last_name?.[0] ?? ""}`.toUpperCase()
@@ -216,7 +216,7 @@ export default function AppLayout() {
                   <DropdownItem
                     icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>}
                     label="My Profile"
-                    onClick={() => { navigate("/portal"); setDropdownOpen(false); }}
+                    onClick={() => { navigate("/profile"); setDropdownOpen(false); }}
                   />
                   <DropdownItem
                     icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>}
@@ -226,7 +226,7 @@ export default function AppLayout() {
                   <DropdownItem
                     icon={<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>}
                     label="Change Password"
-                    onClick={() => { navigate("/change-password"); setDropdownOpen(false); }}
+                    onClick={() => { navigate("/profile#password"); setDropdownOpen(false); }}
                   />
 
                   <div style={styles.ddDivider} />
@@ -330,5 +330,5 @@ const styles = {
   ddItemDanger: { color: "#8a8a8a" },
   ddItemDangerHover: { background: "rgba(239,68,68,0.05)", color: "#f87171" },
   ddDivider: { height: "0.5px", background: "#303030", margin: "2px 0" },
-  content: { flex: 1, overflowY: "auto" },
+  content: { flex: 1, overflowY: "auto", position: "relative" },
 };

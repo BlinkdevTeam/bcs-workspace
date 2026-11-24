@@ -5,6 +5,8 @@ import api from "../../services/api";
 import { selectUser } from "../../store/slices/authSlice";
 import TaskPanel from "./TaskPanel";
 import { projectColor } from "../../services/projects";
+import { CUSTOM_STATUSES, setCustomStatuses, customFor } from "../../services/statuses";
+import StatusMenu from "../../components/StatusMenu";
 
 // ── Helpers for API data ──────────────────────────────────────────────────────
 const PERSON_COLORS   = ["#3b82f6", "#a78bfa", "#f97316", "#22c55e", "#ec4899", "#14b8a6"];
@@ -54,14 +56,17 @@ export const STATUSES = [
 ];
 
 export const PRIORITIES = [
+  { value: "critical", label: "Critical", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
   { value: "high",   label: "High",   color: "#f97316", bg: "rgba(249,115,22,0.1)" },
   { value: "medium", label: "Medium", color: "#facc15", bg: "rgba(250,204,21,0.08)" },
   { value: "low",    label: "Low",    color: "#22c55e", bg: "rgba(34,197,94,0.1)" },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-export const getStatus   = (v) => STATUSES.find((s) => s.value === v)   ?? STATUSES[0];
-export const getPriority = (v) => PRIORITIES.find((p) => p.value === v) ?? PRIORITIES[1];
+export const getStatus   = (v) => STATUSES.find((s) => s.value === v) ?? CUSTOM_STATUSES.find((s) => s.value === v) ?? STATUSES[0];
+// Built-in statuses + the custom labels of one project
+export const statusesFor = (projectId) => [...STATUSES, ...customFor(projectId)];
+export const getPriority = (v) => PRIORITIES.find((p) => p.value === v) ?? PRIORITIES.find((p) => p.value === "medium");
 export const getPerson   = (id) => PEOPLE.find((p) => p.id === id);
 
 export function formatDate(dateStr) {
@@ -203,9 +208,11 @@ export default function MyTasks() {
 
   const load = useCallback(async () => {
     try {
-      const [t, e, p] = await Promise.all([
+      const [t, e, p, st] = await Promise.all([
         api.get("/tasks"), api.get("/employees"), api.get("/projects"),
+        api.get("/project-statuses").catch(() => ({ data: { statuses: [] } })),
       ]);
+      setCustomStatuses(st.data.statuses);
       setPeople(e.data.employees);
       setProjects(p.data.projects);
       setTasks(t.data.tasks.map(toUi));
@@ -225,6 +232,21 @@ export default function MyTasks() {
     window.addEventListener("projects:changed", load);
     return () => window.removeEventListener("projects:changed", load);
   }, [load]);
+
+  // A label was added or deleted: re-render; for a deleted one, those tasks fall back to To Do
+  const [, setStatusTick] = useState(0);
+  useEffect(() => {
+    const onChange = (e) => {
+      setStatusTick((n) => n + 1);
+      const gone = e.detail?.deleted;
+      if (gone) {
+        setTasks((prev) => prev.map((t) => (t.status === gone ? { ...t, status: "todo", done: false } : t)));
+        setSelectedTask((prev) => (prev && prev.status === gone ? { ...prev, status: "todo", done: false } : prev));
+      }
+    };
+    window.addEventListener("statuses:changed", onChange);
+    return () => window.removeEventListener("statuses:changed", onChange);
+  }, []);
 
   // Switching project (or going to My Tasks) closes the panel and clears the search
   useEffect(() => { setSelectedTask(null); setSearch(""); }, [projectId]);
@@ -367,7 +389,7 @@ export default function MyTasks() {
     <div style={s.root} onClick={() => setOpenMenu(null)}>
 
       {/* ── Table area ── */}
-      <div style={{ ...s.tableArea, width: panelOpen ? "58%" : "100%" }}>
+      <div style={s.tableArea}>
 
         <div style={s.pageHeader}>
           <div style={s.topRow}>
@@ -406,7 +428,7 @@ export default function MyTasks() {
               {PEOPLE.map((p) => <FilterOption key={p.id} label={p.name} checked={filters.person.has(p.id)} onClick={() => toggleFilter("person", p.id)} />)}
             </FilterDropdown>
 
-            <FilterDropdown label="Date" isOpen={openMenu === "date"} isActive={filters.date.size > 0} onToggle={() => setOpenMenu(openMenu === "date" ? null : "date")}
+            <FilterDropdown label="Due date" isOpen={openMenu === "date"} isActive={filters.date.size > 0} onToggle={() => setOpenMenu(openMenu === "date" ? null : "date")}
               icon={<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>}>
               {[["today","Due today"],["tomorrow","Due tomorrow"],["overdue","Overdue"]].map(([val, label]) =>
                 <FilterOption key={val} label={label} checked={filters.date.has(val)} onClick={() => toggleFilter("date", val)} />
@@ -418,6 +440,7 @@ export default function MyTasks() {
         </div>
 
         <div style={s.tableWrapper}>
+         <div style={{ flex: "0 0 100%", minWidth: 1000 }}>
           <table style={s.table}>
             <thead>
               <tr>
@@ -425,7 +448,7 @@ export default function MyTasks() {
                 <th style={{ ...s.th, width: 130 }}>Status</th>
                 <th style={{ ...s.th, width: 110 }}>Priority</th>
                 <th style={{ ...s.th, width: 110 }}>People</th>
-                <th style={{ ...s.th, width: 110 }}>Date</th>
+                <th style={{ ...s.th, width: 110 }}>Due date</th>
               </tr>
             </thead>
             <tbody>
@@ -454,12 +477,14 @@ export default function MyTasks() {
               )}
             </tbody>
           </table>
+         </div>
+         {panelOpen && <div style={{ flex: `0 0 ${PANEL_WIDTH}px` }} />}
         </div>
       </div>
 
       {/* ── Detail panel ── */}
       {panelOpen && (
-        <div style={s.panelArea}>
+        <div style={s.panelArea} onClick={(e) => e.stopPropagation()}>
           <TaskPanel
             task={selectedTask}
             onClose={() => setSelectedTask(null)}
@@ -604,12 +629,12 @@ function TaskRow({ task, subtasks = [], isExpanded, onToggleExpand, onUpdate, on
               {getStatus(task.status).label}
             </div>
             {openCell === "status" && (
-              <CellDropdown onClose={() => setOpenCell(null)}>
-                {STATUSES.map((st) => (
-                  <div key={st.value} style={s.cdItem} onClick={() => { onUpdate({ status: st.value, done: st.value === "done" }); setOpenCell(null); }}>
-                    <span style={{ ...s.pill, color: st.color, background: st.bg }}>{st.label}</span>
-                  </div>
-                ))}
+              <CellDropdown onClose={() => setOpenCell(null)} width={220}>
+                <StatusMenu
+                  options={statusesFor(task.project_id)} projectId={task.project_id}
+                  itemStyle={s.cdItem} pillStyle={s.pill}
+                  onPick={(st) => { onUpdate({ status: st.value, done: st.value === "done" }); setOpenCell(null); }}
+                />
               </CellDropdown>
             )}
           </div>
@@ -682,7 +707,7 @@ function TaskRow({ task, subtasks = [], isExpanded, onToggleExpand, onUpdate, on
               onDragStart={() => {}} onDragOver={() => {}} onDragEnd={() => {}}
               isSubtask={true} />
           ))}
-          <tr style={{ background: "#252525", borderBottom: "0.5px solid #2c2c2c" }}>
+          <tr style={{ background: "#252525", borderBottom: `0.5px solid ${LINE_COLOR}` }}>
             <td colSpan={5} style={{ paddingLeft: 56, paddingTop: 7, paddingBottom: 7, background: "#252525" }}>
               <div style={s.addSubtaskBtn} onClick={() => onAddSubtask()}>+ Add subtask</div>
             </td>
@@ -730,10 +755,13 @@ function FilterOption({ label, checked, onClick }) {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
+const PANEL_WIDTH = 520;
+const LINE_COLOR  = "#2c2c2c";   // table row lines
+
 const s = {
-  root:            { background: "#202020", height: "100%", minHeight: "100vh", display: "flex", overflow: "hidden" },
-  tableArea:       { display: "flex", flexDirection: "column", overflow: "hidden", transition: "width 0.25s ease", minWidth: 0 },
-  panelArea:       { width: "42%", minWidth: 340, maxWidth: 520, flexShrink: 0, borderLeft: "0.5px solid #2c2c2c", overflow: "hidden", display: "flex", flexDirection: "column" },
+  root:            { background: "#202020", position: "absolute", top: 0, right: 0, bottom: 0, left: 0, display: "flex", overflow: "hidden" },
+  tableArea:       { display: "flex", flexDirection: "column", overflow: "hidden", width: "100%", minWidth: 0 },
+  panelArea:       { position: "absolute", top: 0, right: 0, bottom: 0, width: PANEL_WIDTH, maxWidth: "92%", zIndex: 60, background: "#202020", borderLeft: "0.5px solid #454545", boxShadow: "-12px 0 32px rgba(0,0,0,0.45)", overflow: "hidden", display: "flex", flexDirection: "column" },
   pageHeader:      { padding: "24px 24px 0", flexShrink: 0, background: "#202020" },
   topRow:          { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
   title:           { fontSize: 16, fontWeight: 500, color: "#fff" },
@@ -750,7 +778,7 @@ const s = {
   ddCheck:         { width: 12, height: 12, borderRadius: 3, border: "0.5px solid #555", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   ddCheckOn:       { background: "#22c55e", borderColor: "#22c55e" },
   clearBtn:        { fontSize: 11, color: "#9a9a9a", cursor: "pointer", padding: "5px 8px" },
-  tableWrapper:    { flex: 1, overflowY: "auto", overflowX: "auto", background: "#202020", minHeight: 0 },
+  tableWrapper:    { flex: 1, overflowY: "auto", overflowX: "auto", background: "#202020", minHeight: 0, display: "flex", alignItems: "flex-start" },
   table:           { width: "100%", borderCollapse: "collapse", minWidth: 560, background: "#202020" },
   th:              { padding: "8px 12px", fontSize: 10, color: "#9a9a9a", textTransform: "uppercase", letterSpacing: 1, fontWeight: 500, whiteSpace: "nowrap", background: "#202020", position: "sticky", top: 0, zIndex: 10, textAlign: "left", borderBottom: "0.5px solid #323232" },
   groupHeader:     { display: "flex", alignItems: "center", gap: 8, padding: "14px 24px 8px", cursor: "pointer" },
@@ -758,7 +786,7 @@ const s = {
   groupName:       { fontSize: 12, color: "#b0b0b0", fontWeight: 500 },
   groupCount:      { fontSize: 10, color: "#8a8a8a", background: "#2c2c2c", padding: "1px 7px", borderRadius: 10 },
   groupChevron:    { marginLeft: "auto", fontSize: 10, color: "#7a7a7a" },
-  taskRow:         { borderBottom: "0.5px solid #2c2c2c", transition: "opacity 0.15s, background 0.15s", cursor: "pointer" },
+  taskRow:         { borderBottom: `0.5px solid ${LINE_COLOR}`, transition: "opacity 0.15s, background 0.15s", cursor: "pointer" },
   subtaskRow:      { cursor: "default" },
   selectedRow:     { borderLeft: "2px solid #3b82f6" },
   taskNameCell:    { display: "flex", alignItems: "center", gap: 8, padding: "10px 12px 10px 0" },
@@ -777,7 +805,7 @@ const s = {
   cellDropdown:    { position: "absolute", top: 28, left: 0, background: "#262626", border: "0.5px solid #454545", borderRadius: 8, zIndex: 200, overflow: "hidden", boxShadow: "0 8px 24px rgba(0,0,0,0.5)" },
   cdItem:          { display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", cursor: "pointer" },
   dateInput:       { background: "#303030", border: "0.5px solid #444", borderRadius: 4, padding: "4px 8px", fontSize: 12, color: "#aaa", outline: "none", width: "100%", colorScheme: "dark" },
-  addTaskCell:     { padding: "8px 24px", borderBottom: "0.5px solid #2c2c2c", background: "#202020" },
+  addTaskCell:     { padding: "8px 24px", borderBottom: `0.5px solid ${LINE_COLOR}`, background: "#202020" },
   addTaskBtn:      { fontSize: 12, color: "#7a7a7a", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 },
   addSubInline:    { fontSize: 11, color: "#9a9a9a", cursor: "pointer", padding: "1px 8px", borderRadius: 4, border: "0.5px solid #383838", marginLeft: 6, whiteSpace: "nowrap" },
   addSubtaskBtn:   { fontSize: 11, color: "#707070", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 },

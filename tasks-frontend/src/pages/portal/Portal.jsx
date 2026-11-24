@@ -19,7 +19,6 @@ export default function Portal() {
       .finally(() => setLoading(false));
   }, []);
 
-  const fullName = user ? `${user.first_name} ${user.last_name}`.replace(/\s+/g, " ").trim() : "";
   const initials = user?.avatar_initials
     || (user ? `${user.first_name?.[0] ?? ""}${user.last_name?.[0] ?? ""}`.toUpperCase() : "");
 
@@ -29,13 +28,6 @@ export default function Portal() {
   const overdue = open.filter((t) => t.due && new Date(t.due) < today);
   const dueSoon = open.filter((t) => t.due && new Date(t.due) >= today && new Date(t.due) <= weekEnd);
   const done    = tasks.filter((t) => t.done);
-
-  const details = [
-    ["Employee code", user?.employee_code],
-    ["Email",         user?.email],
-    ["Role",          user?.role_title],
-    ["Status",        user?.status],
-  ];
 
   const soon = [
     { title: "Leave",      text: "File leave requests and see your balances." },
@@ -47,24 +39,17 @@ export default function Portal() {
   return (
     <div style={s.page}>
       <div style={s.title}>Employee Portal</div>
-      <div style={s.sub}>Your own details and work, in one place</div>
+      <div style={s.sub}>Your work and HR services in one place</div>
 
-      {/* Profile */}
+      {/* Greeting */}
       <div style={s.card}>
         <div style={s.profileRow}>
           <div style={s.avatar}>{initials}</div>
-          <div>
-            <div style={s.name}>{fullName || "—"}</div>
-            <div style={s.role}>{user?.role_title || "Employee"}</div>
+          <div style={{ flex: 1 }}>
+            <div style={s.name}>Welcome back, {user?.first_name || "there"}</div>
+            <div style={s.role}>{[user?.role_title, user?.employee_code].filter(Boolean).join(" · ") || "Employee"}</div>
           </div>
-        </div>
-        <div style={s.detailGrid}>
-          {details.map(([label, value]) => (
-            <div key={label}>
-              <div style={s.label}>{label}</div>
-              <div style={s.value}>{value || "—"}</div>
-            </div>
-          ))}
+          <button style={s.btn} onClick={() => navigate("/profile")}>View my profile</button>
         </div>
       </div>
 
@@ -109,11 +94,11 @@ function Stat({ label, value, color }) {
 }
 
 const s = {
-  page:         { padding: "28px 32px", maxWidth: 900, color: "#c9c9c9" },
+  page:         { padding: "28px 32px", color: "#c9c9c9" },
   title:        { fontSize: 20, fontWeight: 600, color: "#fff" },
   sub:          { fontSize: 12, color: "#9a9a9a", marginTop: 4, marginBottom: 22 },
   card:         { background: "#262626", border: "0.5px solid #454545", borderRadius: 10, padding: 22 },
-  profileRow:   { display: "flex", alignItems: "center", gap: 16, marginBottom: 20 },
+  profileRow:   { display: "flex", alignItems: "center", gap: 16 },
   avatar:       { width: 54, height: 54, borderRadius: "50%", background: "#3b82f6", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 600 },
   name:         { fontSize: 17, fontWeight: 600, color: "#fff" },
   role:         { fontSize: 12, color: "#9a9a9a", marginTop: 3 },

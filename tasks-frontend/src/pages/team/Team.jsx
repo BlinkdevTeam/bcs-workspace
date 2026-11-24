@@ -69,7 +69,7 @@ export default function Team() {
 }
 
 const s = {
-  page:    { padding: "28px 32px", maxWidth: 900, color: "#c9c9c9" },
+  page:    { padding: "28px 32px", color: "#c9c9c9" },
   head:    { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 20, flexWrap: "wrap" },
   title:   { fontSize: 20, fontWeight: 600, color: "#fff" },
   sub:     { fontSize: 12, color: "#9a9a9a", marginTop: 4 },
