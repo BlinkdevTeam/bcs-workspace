@@ -8,6 +8,7 @@ const cookieParser = require("cookie-parser");
 const router       = require("./routes");
 const projectStatusRoutes = require("./routes/projectStatuses");
 const attachmentRoutes    = require("./routes/attachments");
+const projectEditRoutes   = require("./routes/projectEdit");
 const errorHandler = require("./middleware/errorHandler");
 const notFound     = require("./middleware/notFound");
 
@@ -31,6 +32,7 @@ app.use(cookieParser());   // lets the auth routes read the refresh-token cookie
 
 app.use("/api", projectStatusRoutes);   // custom status labels per project
 app.use("/api", attachmentRoutes);      // files attached to tasks
+app.use("/api", projectEditRoutes);     // rename / edit a project
 app.use("/api", router);
 
 app.use(notFound);

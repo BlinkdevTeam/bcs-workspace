@@ -7,6 +7,7 @@ import TaskPanel from "./TaskPanel";
 import { projectColor } from "../../services/projects";
 import { CUSTOM_STATUSES, setCustomStatuses, customFor } from "../../services/statuses";
 import StatusMenu from "../../components/StatusMenu";
+import EditableText from "../../components/EditableText";
 
 // ── Helpers for API data ──────────────────────────────────────────────────────
 const PERSON_COLORS   = ["#3b82f6", "#a78bfa", "#f97316", "#22c55e", "#ec4899", "#14b8a6"];
@@ -376,6 +377,19 @@ export default function MyTasks() {
   // Project page: one table for that project (no group header).
   // My Tasks: my tasks, grouped by project.
   const currentProject = projects.find((p) => p.id === projectId);
+
+  // Only the creator or a project owner can edit (the server enforces this too)
+  const canEditProject = !!currentProject && (
+    !currentProject.created_by ||
+    currentProject.created_by === me?.id ||
+    (currentProject.members || []).some((x) => x.id === me?.id && x.ProjectMember?.role === "owner")
+  );
+
+  const saveProject = async (fields) => {
+    const { data } = await api.patch(`/projects/${projectId}`, fields);
+    setProjects((prev) => prev.map((p) => (p.id === projectId ? { ...p, ...data.project } : p)));
+    window.dispatchEvent(new Event("projects:changed"));   // refresh the sidebar name
+  };
   const groups = inProject
     ? (currentProject ? [{ id: currentProject.id, name: currentProject.name, tasks: filtered }] : [])
     : projects
@@ -394,12 +408,31 @@ export default function MyTasks() {
         <div style={s.pageHeader}>
           <div style={s.topRow}>
             <div>
-              <div style={s.title}>{inProject ? (currentProject?.name ?? "Project") : "My Tasks"}</div>
-              <div style={s.sub}>
-                {inProject
-                  ? (currentProject?.description || "All tasks in this project")
-                  : "Tasks assigned to you across all projects"}
-              </div>
+              {inProject && currentProject ? (
+                <>
+                  <EditableText
+                    value={currentProject.name} canEdit={canEditProject} style={s.title}
+                    onSave={(name) => saveProject({ name })}
+                  />
+                  <div style={{ marginTop: 3 }}>
+                    <EditableText
+                      value={currentProject.description || ""} canEdit={canEditProject} style={s.sub} multiline
+                      emptyText={canEditProject ? "Add a description" : "All tasks in this project"}
+                      onSave={(description) => saveProject({ description })}
+                    />
+                  </div>
+                  {currentProject.created_at && (
+                    <div style={{ fontSize: 11, color: "#7a7a7a", marginTop: 8 }}>
+                      Created {new Date(currentProject.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div style={s.title}>{inProject ? "Project" : "My Tasks"}</div>
+                  <div style={s.sub}>{inProject ? "All tasks in this project" : "Tasks assigned to you across all projects"}</div>
+                </>
+              )}
             </div>
             <button style={s.newBtn} onClick={() => addTask(inProject ? projectId : groups[0]?.id)}>+ New task</button>
           </div>

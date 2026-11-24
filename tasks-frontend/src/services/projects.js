@@ -18,8 +18,6 @@ export async function createProject(form) {
   const { data } = await api.post("/projects", {
     name:        form.name.trim(),
     description: form.description.trim() || null,
-    start_date:  form.start_date || null,
-    end_date:    form.end_date || null,
   });
   window.dispatchEvent(new Event("projects:changed"));
   return data.project;

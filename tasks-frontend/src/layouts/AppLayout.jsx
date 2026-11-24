@@ -30,8 +30,7 @@ const NAV_ITEMS = [
   {
     to: "/my-tasks",
     label: "My Tasks",
-    badge: 4,
-    badgeColor: "red",
+    badgeColor: "red",   // number comes from dueCount (tasks due today or overdue)
     icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>,
   },
   {
@@ -67,6 +66,21 @@ export default function AppLayout() {
     window.addEventListener("projects:changed", loadProjects);
     return () => window.removeEventListener("projects:changed", loadProjects);
   }, [loadProjects]);
+
+  // Red badge on My Tasks: my open tasks that are due today or overdue.
+  // Refreshed whenever you move to another page.
+  const [dueCount, setDueCount] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    api.get("/tasks", { params: { mine: true } })
+      .then(({ data }) => {
+        if (cancelled) return;
+        const today = new Date().toLocaleDateString("en-CA");
+        setDueCount((data.tasks || []).filter((t) => !t.done && t.due && String(t.due).slice(0, 10) <= today).length);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [pathname]);
 
   const pageLabel = pathname.startsWith("/projects/")
     ? (projects.find((p) => pathname === `/projects/${p.id}`)?.name ?? "Project")
@@ -120,12 +134,9 @@ export default function AppLayout() {
             >
               <span style={styles.navIcon}>{item.icon}</span>
               {item.label}
-              {item.badge && (
-                <span style={{
-                  ...styles.badge,
-                  ...(item.badgeColor === "red" ? styles.badgeRed : {}),
-                }}>
-                  {item.badge}
+              {item.to === "/my-tasks" && dueCount > 0 && (
+                <span style={{ ...styles.badge, ...styles.badgeRed }} title="Tasks due today or overdue">
+                  {dueCount}
                 </span>
               )}
             </NavLink>

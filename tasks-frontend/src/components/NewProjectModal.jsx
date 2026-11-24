@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 
 // ── NewProjectModal ───────────────────────────────────────────────────────────
 export default function NewProjectModal({ onClose, onCreate }) {
-  const [form, setForm]     = useState({ name: "", description: "", start_date: "", end_date: "" });
+  const [form, setForm]     = useState({ name: "", description: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState("");
   const nameRef             = useRef(null);
@@ -14,10 +14,6 @@ export default function NewProjectModal({ onClose, onCreate }) {
   const submit = async () => {
     if (saving) return;
     if (!form.name.trim()) { setError("Project name is required."); return; }
-    if (form.start_date && form.end_date && form.end_date < form.start_date) {
-      setError("The end date cannot be before the start date.");
-      return;
-    }
     setSaving(true);
     setError("");
     try {
@@ -43,17 +39,6 @@ export default function NewProjectModal({ onClose, onCreate }) {
         <label style={m.label}>Description <span style={m.optional}>(optional)</span></label>
         <textarea value={form.description} onChange={set("description")} rows={3}
           placeholder="What is this project about?" style={{ ...m.input, resize: "none" }} />
-
-        <div style={m.row}>
-          <div style={{ flex: 1 }}>
-            <label style={m.label}>Start date <span style={m.optional}>(optional)</span></label>
-            <input type="date" value={form.start_date} onChange={set("start_date")} style={m.input} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={m.label}>End date <span style={m.optional}>(optional)</span></label>
-            <input type="date" value={form.end_date} onChange={set("end_date")} style={m.input} />
-          </div>
-        </div>
 
         {error && <div style={m.error}>{error}</div>}
 

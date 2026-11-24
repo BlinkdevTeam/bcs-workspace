@@ -1,86 +1,154 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
+import { projectColor } from "../../services/projects";
+import { setCustomStatuses } from "../../services/statuses";
+import { getPriority, getStatus } from "../my-tasks/MyTasks";
 
-// ── Mock data — replace with API calls in Sprint 6 ────────────────────────────
-const MOCK_TASKS = [
-  { id: 1, name: "Set up Redux store for tasks-frontend", priority: "high", project: "Sprint 1", due: "today", status: "progress", done: false },
-  { id: 2, name: "Configure Axios instance with interceptors", priority: "high", project: "Sprint 1", due: "today", status: "progress", done: false },
-  { id: 3, name: "Build ProtectedRoute component", priority: "medium", project: "Sprint 1", due: "tomorrow", status: "progress", done: false },
-  { id: 4, name: "Health check endpoint + CORS config", priority: "medium", project: "Sprint 1", due: "today", status: "progress", done: false },
-  { id: 5, name: "Create tasks-backend boilerplate", priority: "done", project: "Sprint 1", due: "done", status: "done", done: true },
-  { id: 6, name: "Set up RefreshToken + PasswordResetToken models", priority: "done", project: "Sprint 1", due: "done", status: "done", done: true },
-];
+const FILTERS = ["All", "Due today", "Overdue", "In progress", "Completed"];
 
-const MOCK_PROGRESS = [
-  { name: "Sprint 1 — Overall", pct: 62, color: "#3b82f6" },
-  { name: "HRIS Frontend", pct: 45, color: "#22c55e" },
-  { name: "Tasks Backend", pct: 30, color: "#facc15" },
-];
+// Local "today" as YYYY-MM-DD, and the date part of a task's due value
+const todayStr = () => new Date().toLocaleDateString("en-CA");
+const dueDay   = (due) => (due ? String(due).slice(0, 10) : null);
 
-const MOCK_ACTIVITY = [
-  { text: "Completed", bold: "tasks-backend boilerplate", time: "2 hours ago", color: "#3b82f6" },
-  { text: "Junior pushed", bold: "HRIS login page", time: "4 hours ago", color: "#22c55e" },
-  { text: "Sprint 1 review scheduled for", bold: "Mar 24", time: "Yesterday", color: "#facc15" },
-  { text: "RefreshToken model", bold: "merged to main", time: "Yesterday", color: "#f97316" },
-];
+function dueInfo(task, today) {
+  const day = dueDay(task.due);
+  if (!day || task.done) return null;
+  if (day < today) return { text: "Overdue", color: "#f87171" };
+  if (day === today) return { text: "Due today", color: "#f97316" };
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  if (day === tomorrow.toLocaleDateString("en-CA")) return { text: "Due tomorrow", color: "#7a7a7a" };
+  return {
+    text: "Due " + new Date(day + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    color: "#7a7a7a",
+  };
+}
 
-const FILTERS = ["All", "Due today", "In progress", "Completed"];
+function timeAgo(iso) {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+  const days = Math.round(hrs / 24);
+  return days === 1 ? "Yesterday" : `${days} days ago`;
+}
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const { user } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
   const firstName = user?.first_name ?? "there";
 
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long", month: "long", day: "numeric",
-  });
+  const [allTasks, setAllTasks] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState("");
+  const [filter, setFilter]     = useState("All");
 
-  const [filter, setFilter] = useState("All");
-  const [tasks, setTasks] = useState(MOCK_TASKS);
+  const load = useCallback(async () => {
+    try {
+      const [t, st] = await Promise.all([
+        api.get("/tasks"),
+        api.get("/project-statuses").catch(() => ({ data: { statuses: [] } })),
+      ]);
+      setCustomStatuses(st.data.statuses);
+      setAllTasks(t.data.tasks || []);
+      setError("");
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not load your tasks.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const filteredTasks = tasks.filter((t) => {
-    if (filter === "All") return true;
-    if (filter === "Due today") return t.due === "today";
-    if (filter === "In progress") return t.status === "progress";
-    if (filter === "Completed") return t.done;
-    return true;
-  });
+  useEffect(() => { load(); }, [load]);
 
-  const toggleTask = (id) => {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === id
-          ? { ...t, done: !t.done, status: !t.done ? "done" : "progress", due: !t.done ? "done" : "today" }
-          : t
-      )
-    );
-  };
+  const today = todayStr();
+  const hour  = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const dateLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+
+  // Tasks assigned to me (main tasks and subtasks)
+  const mine = allTasks.filter((t) => (t.people || []).some((p) => p.id === user?.id));
+  const open      = mine.filter((t) => !t.done);
+  const dueToday  = open.filter((t) => dueDay(t.due) === today);
+  const overdue   = open.filter((t) => dueDay(t.due) && dueDay(t.due) < today);
+  const doneCount = mine.length - open.length;
+  const inProg    = open.filter((t) => t.status === "progress");
+  const projectCount = new Set(mine.map((t) => t.project_id)).size;
 
   const stats = [
-    { label: "Total Tasks", value: tasks.length, sub: "+3 this week", subColor: "#22c55e" },
-    { label: "In Progress", value: tasks.filter((t) => t.status === "progress").length, sub: "3 projects", subColor: "#444" },
-    { label: "Due Today", value: tasks.filter((t) => t.due === "today").length, sub: "2 high priority", subColor: "#f97316" },
-    { label: "Completed", value: tasks.filter((t) => t.done).length, sub: `${Math.round((tasks.filter((t) => t.done).length / tasks.length) * 100)}% rate`, subColor: "#22c55e" },
+    { label: "Assigned to me", value: mine.length, sub: `${projectCount} project${projectCount === 1 ? "" : "s"}`, subColor: "#7a7a7a" },
+    { label: "In Progress", value: inProg.length, sub: `${open.length} open`, subColor: "#7a7a7a" },
+    { label: "Due Today", value: dueToday.length, sub: overdue.length ? `${overdue.length} overdue` : "none overdue", subColor: overdue.length ? "#f87171" : "#22c55e" },
+    { label: "Completed", value: doneCount, sub: mine.length ? `${Math.round((doneCount / mine.length) * 100)}% done` : "—", subColor: "#22c55e" },
   ];
+
+  const filteredTasks = mine
+    .filter((t) => {
+      if (filter === "All") return true;
+      if (filter === "Due today") return !t.done && dueDay(t.due) === today;
+      if (filter === "Overdue") return !t.done && dueDay(t.due) && dueDay(t.due) < today;
+      if (filter === "In progress") return !t.done && t.status === "progress";
+      if (filter === "Completed") return t.done;
+      return true;
+    })
+    // open first, then by due date (no date last), finished tasks at the bottom
+    .sort((a, b) => {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      const da = dueDay(a.due) || "9999", db = dueDay(b.due) || "9999";
+      return da < db ? -1 : da > db ? 1 : 0;
+    });
+
+  const toggleTask = async (task) => {
+    const done = !task.done;
+    const patch = { done, status: done ? "done" : "todo" };
+    setAllTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, ...patch } : t)));   // optimistic
+    try {
+      await api.patch(`/tasks/${task.id}`, patch);
+    } catch {
+      setAllTasks((prev) => prev.map((t) => (t.id === task.id ? { ...t, done: task.done, status: task.status } : t)));
+    }
+  };
+
+  // Progress per project (all tasks in the project, not only mine)
+  const progress = Object.values(
+    allTasks.reduce((acc, t) => {
+      const key = t.project_id;
+      if (!key) return acc;
+      acc[key] = acc[key] || { id: key, name: t.project || "Project", total: 0, done: 0 };
+      acc[key].total += 1;
+      if (t.done) acc[key].done += 1;
+      return acc;
+    }, {})
+  ).sort((a, b) => a.name.localeCompare(b.name)).slice(0, 6);
+
+  // Recently updated tasks (stands in for an activity log, which doesn't exist yet)
+  const recent = [...allTasks]
+    .filter((t) => t.updated_at)
+    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+    .slice(0, 6);
 
   return (
     <div style={s.page}>
       {/* Header */}
       <div style={s.topRow}>
         <div>
-          <div style={s.greeting}>Good morning, {firstName}</div>
-          <div style={s.sub}>{today} · {tasks.filter((t) => t.due === "today" && !t.done).length} tasks due today</div>
+          <div style={s.greeting}>{greeting}, {firstName}</div>
+          <div style={s.sub}>{dateLabel} · {dueToday.length} task{dueToday.length === 1 ? "" : "s"} due today{overdue.length ? ` · ${overdue.length} overdue` : ""}</div>
         </div>
-        <button style={s.newBtn}>+ New task</button>
       </div>
+
+      {error && <div style={{ ...s.emptyState, color: "#f87171" }}>{error}</div>}
 
       {/* Stats */}
       <div style={s.statsGrid}>
         {stats.map((st) => (
           <div key={st.label} style={s.statCard}>
             <div style={s.statLabel}>{st.label}</div>
-            <div style={s.statValue}>{st.value}</div>
-            <div style={{ ...s.statSub, color: st.subColor }}>{st.sub}</div>
+            <div style={s.statValue}>{loading ? "…" : st.value}</div>
+            <div style={{ ...s.statSub, color: st.subColor }}>{loading ? "" : st.sub}</div>
           </div>
         ))}
       </div>
@@ -92,53 +160,47 @@ export default function Dashboard() {
           <div style={s.panelTitle}>My Tasks</div>
           <div style={s.filters}>
             {FILTERS.map((f) => (
-              <div
-                key={f}
-                style={{ ...s.filterBtn, ...(filter === f ? s.filterBtnActive : {}) }}
-                onClick={() => setFilter(f)}
-              >
+              <div key={f} style={{ ...s.filterBtn, ...(filter === f ? s.filterBtnActive : {}) }} onClick={() => setFilter(f)}>
                 {f}
               </div>
             ))}
           </div>
           <div>
-            {filteredTasks.length === 0 && (
-              <div style={s.emptyState}>No tasks found</div>
-            )}
-            {filteredTasks.map((task) => (
-              <div key={task.id} style={s.taskItem}>
-                <div
-                  style={{ ...s.checkbox, ...(task.done ? s.checkboxDone : {}) }}
-                  onClick={() => toggleTask(task.id)}
-                >
-                  {task.done && (
-                    <svg width="8" height="5" viewBox="0 0 8 5" fill="none">
-                      <path d="M1 2.5L3 4.5L7 0.5" stroke={task.done ? "#fff" : "transparent"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ ...s.taskName, ...(task.done ? s.taskNameDone : {}) }}>
-                    {task.name}
-                  </div>
-                  <div style={s.taskMeta}>
-                    <span style={{ ...s.taskBadge, ...priorityStyle(task.priority) }}>
-                      {task.priority === "done" ? "Done" : task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                    </span>
-                    <span style={s.metaDot}>·</span>
-                    <span style={s.taskBadge}>{task.project}</span>
-                    {task.due !== "done" && (
-                      <>
-                        <span style={s.metaDot}>·</span>
-                        <span style={{ ...s.taskDue, ...(task.due === "today" ? s.taskDueOverdue : {}) }}>
-                          Due {task.due}
-                        </span>
-                      </>
+            {loading ? (
+              <div style={s.emptyState}>Loading tasks...</div>
+            ) : filteredTasks.length === 0 ? (
+              <div style={s.emptyState}>{mine.length === 0 ? "No tasks are assigned to you yet." : "No tasks found"}</div>
+            ) : filteredTasks.map((task) => {
+              const pr  = getPriority(task.priority);
+              const st  = getStatus(task.status);
+              const due = dueInfo(task, today);
+              return (
+                <div key={task.id} style={s.taskItem}>
+                  <div style={{ ...s.checkbox, ...(task.done ? s.checkboxDone : {}) }} onClick={() => toggleTask(task)}>
+                    {task.done && (
+                      <svg width="8" height="5" viewBox="0 0 8 5" fill="none">
+                        <path d="M1 2.5L3 4.5L7 0.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     )}
                   </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ ...s.taskName, ...s.taskLink, ...(task.done ? s.taskNameDone : {}) }}
+                         onClick={() => navigate(`/projects/${task.project_id}`)}>
+                      {task.name}
+                    </div>
+                    <div style={s.taskMeta}>
+                      <span style={{ ...s.taskBadge, color: pr.color }}>{pr.label}</span>
+                      <span style={s.metaDot}>·</span>
+                      <span style={{ ...s.taskBadge, color: st.color }}>{st.label}</span>
+                      <span style={s.metaDot}>·</span>
+                      <span style={s.taskBadge}>{task.project}</span>
+                      {task.parent_id && (<><span style={s.metaDot}>·</span><span style={s.taskBadge}>Subtask</span></>)}
+                      {due && (<><span style={s.metaDot}>·</span><span style={{ ...s.taskDue, color: due.color }}>{due.text}</span></>)}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -146,33 +208,39 @@ export default function Dashboard() {
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           {/* Progress */}
           <div>
-            <div style={s.panelTitle}>Progress</div>
+            <div style={s.panelTitle}>Progress by project</div>
             <div style={s.divLine} />
-            {MOCK_PROGRESS.map((p) => (
-              <div key={p.name} style={{ marginBottom: 14 }}>
-                <div style={s.progressLabel}>
-                  <span style={s.progressName}>{p.name}</span>
-                  <span style={s.progressPct}>{p.pct}%</span>
+            {progress.length === 0 && <div style={s.emptyState}>No projects with tasks yet</div>}
+            {progress.map((p) => {
+              const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
+              return (
+                <div key={p.id} style={{ marginBottom: 14, cursor: "pointer" }} onClick={() => navigate(`/projects/${p.id}`)}>
+                  <div style={s.progressLabel}>
+                    <span style={s.progressName}>{p.name}</span>
+                    <span style={s.progressPct}>{p.done}/{p.total} · {pct}%</span>
+                  </div>
+                  <div style={s.progressBar}>
+                    <div style={{ ...s.progressFill, width: `${pct}%`, background: projectColor(p.name) }} />
+                  </div>
                 </div>
-                <div style={s.progressBar}>
-                  <div style={{ ...s.progressFill, width: `${p.pct}%`, background: p.color }} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {/* Activity */}
+          {/* Recently updated */}
           <div>
-            <div style={s.panelTitle}>Activity</div>
+            <div style={s.panelTitle}>Recently updated</div>
             <div style={s.divLine} />
-            {MOCK_ACTIVITY.map((a, i) => (
-              <div key={i} style={s.activityItem}>
-                <div style={{ ...s.activityDot, background: a.color }} />
+            {recent.length === 0 && <div style={s.emptyState}>Nothing yet</div>}
+            {recent.map((t) => (
+              <div key={t.id} style={s.activityItem}>
+                <div style={{ ...s.activityDot, background: t.done ? "#22c55e" : projectColor(t.project || "") }} />
                 <div>
                   <div style={s.activityText}>
-                    {a.text} <span style={s.activityBold}>{a.bold}</span>
+                    {t.done ? "Completed" : "Updated"} <span style={s.activityBold}>{t.name}</span>
+                    {t.project ? <> in {t.project}</> : null}
                   </div>
-                  <div style={s.activityTime}>{a.time}</div>
+                  <div style={s.activityTime}>{timeAgo(t.updated_at)}</div>
                 </div>
               </div>
             ))}
@@ -181,14 +249,6 @@ export default function Dashboard() {
       </div>
     </div>
   );
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function priorityStyle(priority) {
-  if (priority === "high") return { color: "#f97316" };
-  if (priority === "medium") return { color: "#facc15" };
-  if (priority === "done") return { color: "#22c55e" };
-  return {};
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -218,6 +278,8 @@ const s = {
   metaDot: { fontSize: 10, color: "#2a2a2a" },
   taskDue: { fontSize: 10, color: "#7a7a7a" },
   taskDueOverdue: { color: "#f97316" },
+  taskLink: { cursor: "pointer" },
+  statLink: { cursor: "pointer" },
   emptyState: { fontSize: 12, color: "#333", padding: "24px 0", textAlign: "center" },
   divLine: { height: "0.5px", background: "#2c2c2c", marginBottom: 14 },
   progressLabel: { display: "flex", justifyContent: "space-between", marginBottom: 5 },
