@@ -1,25 +1,34 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Avatar, Field, IC, IS } from "../../../data/compData";
 import { getDepartments } from "../../../services/departmentService";
-import { updateEmployee } from "../../../services/employeeService";
+import { getEmployees, updateEmployee } from "../../../services/employeeService";
+
+const STATUS_OPTIONS = ["Active", "On Leave", "Inactive"];
+const day = (d) => (d ? String(d).slice(0, 10) : "");
 
 // ── EDIT DRAWER ───────────────────────────────────────────────────────────────
 export default function EditDrawer({ emp, onClose, onSave }) {
-  const [form, setForm] = useState({ ...emp });
+  const [form, setForm] = useState({
+    ...emp,
+    hire_date: day(emp.hire_date),
+    manager_id: emp.manager_id || "",
+  });
   const [departments, setDepartments] = useState([]);
   const [loadingDepts, setLoadingDepts] = useState(true);
   const [errorDepts, setErrorDepts] = useState("");
+  const [people, setPeople] = useState([]);
 
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   function set(k, v) {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
-  // ── FETCH DEPARTMENTS ──────────────────────────────────────────────
+  // ── FETCH DEPARTMENTS + EMPLOYEES (for "Reports to") ───────────────
   useEffect(() => {
     let mounted = true;
-    async function fetchDepts() {
+    async function load() {
       try {
         const res = await getDepartments();
         const deptArray = Array.isArray(res.data) ? res.data : [];
@@ -30,13 +39,31 @@ export default function EditDrawer({ emp, onClose, onSave }) {
       } finally {
         if (mounted) setLoadingDepts(false);
       }
+      try {
+        const res = await getEmployees();
+        if (mounted) setPeople(Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        console.error("Failed to fetch employees:", err);
+      }
     }
-    fetchDepts();
+    load();
     return () => { mounted = false; };
   }, []);
 
+  const managerOptions = useMemo(
+    () => people
+      .filter((p) => p.id !== emp.id)
+      .sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`)),
+    [people, emp.id],
+  );
+
+  const statusValue =
+    STATUS_OPTIONS.find((s) => s.toLowerCase() === String(form.status || "").toLowerCase()) || "Active";
+
   // ── SAVE CHANGES ─────────────────────────────────────────────────
   async function handleSave() {
+    setError("");
+    if (!form.hire_date) return setError("Hire date is required.");
     setSaving(true);
     try {
       // Prepare payload for backend
@@ -46,18 +73,20 @@ export default function EditDrawer({ emp, onClose, onSave }) {
         email: form.email,
         role_title: form.role_title,
         department_id: form.department_id || null,
-        status: form.status,
+        status: statusValue,
+        hire_date: form.hire_date,
+        manager_id: form.manager_id || null,
       };
 
       await updateEmployee(emp.id, payload);
 
       // Update parent state (frontend)
-      onSave({ ...form });
+      onSave({ ...form, status: statusValue, manager_id: form.manager_id || null });
 
       onClose();
     } catch (err) {
       console.error("Failed to save employee:", err);
-      alert("Failed to save changes. Please try again.");
+      setError(err.response?.data?.error || "Failed to save changes. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -166,15 +195,58 @@ export default function EditDrawer({ emp, onClose, onSave }) {
               <select
                 className={IC}
                 style={IS}
-                value={form.status || "Active"}
+                value={statusValue}
                 onChange={(e) => set("status", e.target.value)}
               >
-                <option>Active</option>
-                <option>On Leave</option>
-                <option>Inactive</option>
+                {STATUS_OPTIONS.map((s) => <option key={s}>{s}</option>)}
               </select>
             </Field>
           </div>
+
+          <div className="border-t pt-5" style={{ borderColor: "#1a1a1a" }}>
+            <p className="text-gray-600 text-xs uppercase tracking-widest mb-4" style={{ fontFamily: "system-ui,sans-serif" }}>
+              Employment
+            </p>
+            <div className="space-y-5">
+              <Field label="Hire Date">
+                <input
+                  type="date"
+                  className={IC}
+                  style={{ ...IS, colorScheme: "dark" }}
+                  value={form.hire_date || ""}
+                  onChange={(e) => set("hire_date", e.target.value)}
+                />
+                <p className="text-gray-600 text-xs mt-1.5" style={{ fontFamily: "system-ui,sans-serif" }}>
+                  Monthly leave is counted from this date, so changing it changes the employee's leave balance.
+                </p>
+              </Field>
+
+              <Field label="Reports To">
+                <select
+                  className={IC}
+                  style={IS}
+                  value={form.manager_id || ""}
+                  onChange={(e) => set("manager_id", e.target.value)}
+                >
+                  <option value="">— No manager —</option>
+                  {managerOptions.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.first_name} {p.last_name}{p.role_title ? ` · ${p.role_title}` : ""}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-gray-600 text-xs mt-1.5" style={{ fontFamily: "system-ui,sans-serif" }}>
+                  This person approves the employee's leave and overtime requests.
+                </p>
+              </Field>
+            </div>
+          </div>
+
+          {error && (
+            <p className="text-sm px-3 py-2 rounded" style={{ fontFamily: "system-ui,sans-serif", color: "#f05a5a", backgroundColor: "#1f0f0f", border: "1px solid #3a1515" }}>
+              {error}
+            </p>
+          )}
         </div>
 
         {/* Footer */}

@@ -24,7 +24,7 @@ const connectDB = async () => {
     console.log("PostgreSQL connected.");
 
     if (config.env === "development") {
-      await sequelize.sync({ alter: true });
+      await sequelize.sync();
       console.log("Database synced.");
     }
   } catch (err) {

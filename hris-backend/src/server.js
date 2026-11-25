@@ -48,6 +48,14 @@ app.use("/api/departments", departmentRoutes);
 const roleRoutes = require("./routes/roleRoutes");
 app.use("/api/roles", roleRoutes);
 
+// ── LEAVE TYPES API (HR configures leave kinds and yearly days) ─────
+const leaveTypesRoutes = require("./routes/leaveTypes");
+app.use("/api/leave-types", leaveTypesRoutes);
+
+// ── LEAVE BALANCES API (active employees x active leave types) ─────
+const leaveBalancesRoutes = require("./routes/leaveBalances");
+app.use("/api/leave-balances", leaveBalancesRoutes);
+
 // ── HEALTH CHECK (Optional but useful) ─────────────────────
 app.get("/", (req, res) => {
   res.json({

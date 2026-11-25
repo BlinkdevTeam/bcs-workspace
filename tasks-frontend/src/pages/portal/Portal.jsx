@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import LeaveTab from "./LeaveTab";
+import OvertimeTab from "./OvertimeTab";
 import api from "../../services/api";
 import { selectUser } from "../../store/slices/authSlice";
 
@@ -9,6 +11,9 @@ const HRIS_URL = import.meta.env.VITE_HRIS_URL || "http://localhost:5173";
 export default function Portal() {
   const user     = useSelector(selectUser);
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const tab = ["leave", "overtime"].includes(params.get("tab")) ? params.get("tab") : "overview";
+  const goTab = (t) => setParams(t === "overview" ? {} : { tab: t }, { replace: true });
   const [tasks, setTasks]   = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +35,6 @@ export default function Portal() {
   const done    = tasks.filter((t) => t.done);
 
   const soon = [
-    { title: "Leave",      text: "File leave requests and see your balances." },
     { title: "Attendance", text: "Your time-in / time-out records." },
     { title: "Payslips",   text: "View and download your payslips." },
     { title: "Documents",  text: "Your contracts and employee documents." },
@@ -53,6 +57,19 @@ export default function Portal() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 4, margin: "22px 0 18px", borderBottom: "0.5px solid #383838" }}>
+        {[["overview", "Overview"], ["leave", "Leave"], ["overtime", "Overtime"]].map(([k, l]) => (
+          <div key={k} onClick={() => goTab(k)}
+            style={{ padding: "9px 16px", fontSize: 13, cursor: "pointer", marginBottom: -1,
+                     color: tab === k ? "#fff" : "#8a8a8a",
+                     borderBottom: `2px solid ${tab === k ? "#3b82f6" : "transparent"}` }}>{l}</div>
+        ))}
+      </div>
+
+      {tab === "leave" && <LeaveTab />}
+      {tab === "overtime" && <OvertimeTab />}
+      {tab === "overview" && (<>
       {/* My work */}
       <div style={s.sectionTitle}>My work</div>
       <div style={s.statRow}>
@@ -80,6 +97,7 @@ export default function Portal() {
         HR administrators can manage people and payroll in the{" "}
         <a href={HRIS_URL} target="_blank" rel="noopener noreferrer" style={s.link}>HRIS app</a>.
       </div>
+      </>)}
     </div>
   );
 }

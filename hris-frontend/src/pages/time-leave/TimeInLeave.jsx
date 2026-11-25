@@ -4,6 +4,7 @@ import OverviewTab from "./components/OverviewTab";
 import AttendanceTab from "./components/AttendanceTab";
 import LeaveManagementTab from "./components/LeaveManagementTab";
 import LeaveBalancesTab from "./components/LeaveBalancesTab";
+import LeaveTypesTab from "./components/LeaveTypesTab";
 import OTUTTab from "./components/OTUTTab";
 import OffsetTab from "./components/OffsetTab";
 import {
@@ -57,6 +58,7 @@ export default function TimeAndLeave() {
     { key:"attendance", label:"Attendance"     },
     { key:"leave",      label:"Leave Requests" },
     { key:"balances",   label:"Leave Balances" },
+    { key:"types",      label:"Leave Types"    },
     { key:"otut",       label:"OT / UT"        },
     { key:"offset",     label:"Offset"         },
   ];
@@ -118,6 +120,7 @@ export default function TimeAndLeave() {
         {activeTab==="attendance" && <AttendanceTab attendance={attendance} onCorrect={correctAttendance}/>}
         {activeTab==="leave"      && <LeaveManagementTab leaveRequests={leaveRequests} onApprove={approveLeave} onReject={rejectLeave}/>}
         {activeTab==="balances"   && <LeaveBalancesTab/>}
+        {activeTab==="types"      && <LeaveTypesTab/>}
         {activeTab==="otut"       && <OTUTTab otRecords={otRecords} onApproveOT={approveOT}/>}
         {activeTab==="offset"     && <OffsetTab bank={offsetBank} setBank={setOffsetBank} requests={offsetRequests} setRequests={setOffsetRequests}/>}
       </div>

@@ -60,16 +60,6 @@ const OnboardingTaskTemplate = require("./recruitment/onboardingTaskTemplate");
 const OnboardingTask = require("./recruitment/onboardingTask");
 
 // ─────────────────────────────────
-// TASK MODELS
-// ─────────────────────────────────
-const Project = require("./task/project");
-const ProjectMember = require("./task/projectMember");
-const Task = require("./task/task");
-const TaskTag = require("./task/taskTag");
-const TaskTagAssignment = require("./task/taskTagAssignment");
-const TaskTimeLog = require("./task/taskTimeLog");
-
-// ─────────────────────────────────
 // COMPANY PROFILE MODELS
 // ─────────────────────────────────
 const CompanyProfile = require("./company/profile");
@@ -222,33 +212,6 @@ OnboardingTaskTemplate.hasMany(OnboardingTask, { foreignKey: "template_id" });
 OnboardingTask.belongsTo(OnboardingTaskTemplate, { foreignKey: "template_id" });
 
 // ─────────────────────────────────
-// TASK RELATIONSHIPS
-// ─────────────────────────────────
-Project.hasMany(ProjectMember, { foreignKey: "project_id" });
-ProjectMember.belongsTo(Project, { foreignKey: "project_id" });
-
-Employee.hasMany(ProjectMember, { foreignKey: "employee_id" });
-ProjectMember.belongsTo(Employee, { foreignKey: "employee_id" });
-
-Project.hasMany(Task, { foreignKey: "project_id" });
-Task.belongsTo(Project, { foreignKey: "project_id" });
-
-Employee.hasMany(Task, { foreignKey: "assigned_to" });
-Task.belongsTo(Employee, { foreignKey: "assigned_to" });
-
-Task.hasMany(TaskTagAssignment, { foreignKey: "task_id" });
-TaskTagAssignment.belongsTo(Task, { foreignKey: "task_id" });
-
-TaskTag.hasMany(TaskTagAssignment, { foreignKey: "tag_id" });
-TaskTagAssignment.belongsTo(TaskTag, { foreignKey: "tag_id" });
-
-Task.hasMany(TaskTimeLog, { foreignKey: "task_id" });
-TaskTimeLog.belongsTo(Task, { foreignKey: "task_id" });
-
-Employee.hasMany(TaskTimeLog, { foreignKey: "employee_id" });
-TaskTimeLog.belongsTo(Employee, { foreignKey: "employee_id" });
-
-// ─────────────────────────────────
 // EXPORT ALL MODELS
 // ─────────────────────────────────
 module.exports = {
@@ -288,13 +251,6 @@ module.exports = {
   OnboardingChecklist,
   OnboardingTaskTemplate,
   OnboardingTask,
-
-  Project,
-  ProjectMember,
-  Task,
-  TaskTag,
-  TaskTagAssignment,
-  TaskTimeLog,
 
   CompanyProfile,
 
