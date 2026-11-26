@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import api from "../../services/api";
-import { ps, StatusPill, prettyRange, prettyDateTime, workingDays, todayStr } from "./portalShared";
+import { ps, Drawer, StatusPill, prettyRange, prettyDateTime, workingDays, todayStr } from "./portalShared";
 
 const EMPTY = { leave_type_id: "", start_date: "", end_date: "", half_day: false, reason: "" };
 
@@ -78,7 +78,7 @@ export default function LeaveTab() {
           <div style={ps.heading}>My leave balance — {data.year}</div>
           <div style={ps.hint}>Pending requests are already counted against what's left.</div>
         </div>
-        {!open && <button style={ps.primaryBtn} onClick={openForm}>+ File leave</button>}
+        <button style={ps.primaryBtn} onClick={openForm}>+ File leave</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12, marginBottom: 22 }}>
@@ -114,10 +114,9 @@ export default function LeaveTab() {
       </div>
 
       {/* Form */}
-      {open && (
-        <div style={{ ...ps.card, marginBottom: 22 }}>
-          <div style={{ ...ps.heading, marginBottom: 14 }}>File a leave request</div>
-          <div style={ps.formGrid}>
+      <Drawer open={open} title="File a leave request" subtitle="Pending requests count against your balance." onClose={() => setOpen(false)}>
+          <div>
+          <div style={ps.stack}>
             <div>
               <label style={ps.label}>Leave type</label>
               <select style={ps.input} value={form.leave_type_id} onChange={set("leave_type_id")}>
@@ -161,8 +160,8 @@ export default function LeaveTab() {
             <button style={{ ...ps.primaryBtn, opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={submit}>{busy ? "Filing..." : "File request"}</button>
             <button style={ps.ghostBtn} onClick={() => setOpen(false)}>Cancel</button>
           </div>
-        </div>
-      )}
+          </div>
+        </Drawer>
 
       {/* My requests */}
       <div style={{ ...ps.heading, marginBottom: 10 }}>My requests</div>

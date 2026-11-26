@@ -109,8 +109,23 @@ const serializeLeave = (r) => ({
 
 const serializeOt = (r) => ({
   id: r.id, date: r.date, type: r.type, hours: Number(r.hours),
+  time_from: r.time_from || null, time_to: r.time_to || null,
   reason: r.reason, status: r.status, created_at: r.created_at,
 });
+
+// OT / UT now record the exact clock times (from / to). Added on demand, safe to repeat.
+let otColumnsReady = null;
+function ensureOtColumns() {
+  if (!otColumnsReady) {
+    otColumnsReady = sequelize
+      .query(`ALTER TABLE ot_ut_records ADD COLUMN IF NOT EXISTS time_from TIME;
+              ALTER TABLE ot_ut_records ADD COLUMN IF NOT EXISTS time_to TIME`)
+      .catch((err) => { otColumnsReady = null; throw err; });
+  }
+  return otColumnsReady;
+}
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+const toMin = (t) => { const [h, m] = String(t).split(":"); return Number(h) * 60 + Number(m); };
 
 // ── Leave ─────────────────────────────────────────────────────────────────────
 // GET /api/portal/leave   → balances for this year + my requests
@@ -268,8 +283,10 @@ async function cancelLeave(req, res, next) {
 // GET /api/portal/overtime
 async function getOvertime(req, res, next) {
   try {
+    await ensureOtColumns();
     const rows = await q(
-      `SELECT id, date::text AS date, type, hours, reason, status, "createdAt" AS created_at
+      `SELECT id, date::text AS date, type, hours, to_char(time_from,'HH24:MI') AS time_from, to_char(time_to,'HH24:MI') AS time_to,
+              reason, status, "createdAt" AS created_at
        FROM ot_ut_records WHERE employee_id = :me ORDER BY date DESC, "createdAt" DESC`,
       { me: req.user.sub }
     );
@@ -283,19 +300,24 @@ async function getOvertime(req, res, next) {
 async function createOvertime(req, res, next) {
   try {
     const me = req.user.sub;
-    const { date, type, hours, reason } = req.body;
+    const { date, type, time_from, time_to, reason } = req.body;
 
     if (!parseDay(date))          return res.status(400).json({ message: "Choose a valid date." });
     if (!OT_TYPES.includes(type)) return res.status(400).json({ message: "Type must be OT (overtime) or UT (undertime)." });
+    if (!TIME_RE.test(String(time_from ?? ""))) return res.status(400).json({ message: "Enter the time from, like 18:00." });
+    if (!TIME_RE.test(String(time_to ?? "")))   return res.status(400).json({ message: "Enter the time to, like 20:30." });
 
-    const h = Number(hours);
-    if (!Number.isFinite(h) || h <= 0 || h > 24) return res.status(400).json({ message: "Hours must be more than 0 and no more than 24." });
-    if (Math.round(h * 4) !== h * 4)             return res.status(400).json({ message: "Hours must be in steps of 0.25 (15 minutes)." });
+    // If "to" is not later than "from", the period runs past midnight into the next day.
+    let minutes = toMin(time_to) - toMin(time_from);
+    if (minutes <= 0) minutes += 24 * 60;
+    const h = Math.round((minutes / 60) * 100) / 100;
+    if (h <= 0 || h > 16) return res.status(400).json({ message: "A request can cover at most 16 hours." });
 
     const cleanReason = String(reason ?? "").trim();
     if (!cleanReason)             return res.status(400).json({ message: "Please give a reason." });
     if (cleanReason.length > 255) return res.status(400).json({ message: "The reason is too long (255 characters max)." });
 
+    await ensureOtColumns();
     const [dup] = await q(
       `SELECT 1 AS x FROM ot_ut_records WHERE employee_id = :me AND date = :date AND type = :type AND status IN ('pending','approved') LIMIT 1`,
       { me, date, type }
@@ -303,10 +325,10 @@ async function createOvertime(req, res, next) {
     if (dup) return res.status(409).json({ message: `You already filed ${type} for ${date}.` });
 
     const [row] = await q(
-      `INSERT INTO ot_ut_records (id, employee_id, date, type, hours, reason, status, "createdAt", "updatedAt")
-       VALUES (gen_random_uuid(), :me, :date, :type, :hours, :reason, 'pending', NOW(), NOW())
-       RETURNING id, date::text AS date, type, hours, reason, status, "createdAt" AS created_at`,
-      { me, date, type, hours: h, reason: cleanReason }, QueryTypes.SELECT
+      `INSERT INTO ot_ut_records (id, employee_id, date, type, hours, time_from, time_to, reason, status, "createdAt", "updatedAt")
+       VALUES (gen_random_uuid(), :me, :date, :type, :hours, :time_from, :time_to, :reason, 'pending', NOW(), NOW())
+       RETURNING id, date::text AS date, type, hours, to_char(time_from,'HH24:MI') AS time_from, to_char(time_to,'HH24:MI') AS time_to, reason, status, "createdAt" AS created_at`,
+      { me, date, type, hours: h, time_from, time_to, reason: cleanReason }, QueryTypes.SELECT
     );
     return res.status(201).json({ record: serializeOt(row) });
   } catch (err) {

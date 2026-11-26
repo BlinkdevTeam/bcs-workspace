@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import StatCard from "./components/StatCard";
 import OverviewTab from "./components/OverviewTab";
 import AttendanceTab from "./components/AttendanceTab";
-import LeaveManagementTab from "./components/LeaveManagementTab";
+import LeaveRequestsTab from "./components/LeaveRequestsTab";
+import api from "./leaveApi";
 import LeaveBalancesTab from "./components/LeaveBalancesTab";
 import LeaveTypesTab from "./components/LeaveTypesTab";
 import OTUTTab from "./components/OTUTTab";
@@ -63,7 +64,13 @@ export default function TimeAndLeave() {
     { key:"offset",     label:"Offset"         },
   ];
 
-  const pendingLeave  = leaveRequests.filter(r=>r.status==="Pending").length;
+  const [pendingLeave, setPendingLeave] = useState(0);
+  const refreshPending = useCallback(() => {
+    api.get("/api/leave-requests")
+      .then(r => setPendingLeave(r.data.records.filter(x => x.status === "pending").length))
+      .catch(() => {});
+  }, []);
+  useEffect(refreshPending, [refreshPending]);
   const pendingOffset = offsetRequests.filter(r=>r.status==="Pending").length;
 
   return (
@@ -117,11 +124,11 @@ export default function TimeAndLeave() {
             onReject={rejectLeave}
           />
         )}
-        {activeTab==="attendance" && <AttendanceTab attendance={attendance} onCorrect={correctAttendance}/>}
-        {activeTab==="leave"      && <LeaveManagementTab leaveRequests={leaveRequests} onApprove={approveLeave} onReject={rejectLeave}/>}
+        {activeTab==="attendance" && <AttendanceTab/>}
+        {activeTab==="leave"      && <LeaveRequestsTab onChanged={refreshPending}/>}
         {activeTab==="balances"   && <LeaveBalancesTab/>}
         {activeTab==="types"      && <LeaveTypesTab/>}
-        {activeTab==="otut"       && <OTUTTab otRecords={otRecords} onApproveOT={approveOT}/>}
+        {activeTab==="otut"       && <OTUTTab/>}
         {activeTab==="offset"     && <OffsetTab bank={offsetBank} setBank={setOffsetBank} requests={offsetRequests} setRequests={setOffsetRequests}/>}
       </div>
     </div>

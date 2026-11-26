@@ -1,4 +1,5 @@
 // Small pieces shared by the portal's Leave and Overtime tabs.
+import { useEffect, useState } from "react";
 
 export const dayOnly = (d) => (d ? String(d).slice(0, 10) : "");
 
@@ -52,6 +53,53 @@ export function StatusPill({ status }) {
   );
 }
 
+// Slide-in panel from the right, used for every filing form (same pattern as HRIS).
+export function Drawer({ open, title, subtitle, onClose, children }) {
+  // Stays mounted while it slides out, so closing animates too.
+  const [mounted, setMounted] = useState(open);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      const id = requestAnimationFrame(() => requestAnimationFrame(() => setShown(true)));
+      return () => cancelAnimationFrame(id);
+    }
+    setShown(false);
+    const t = setTimeout(() => setMounted(false), 280);
+    return () => clearTimeout(t);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!mounted) return null;
+  const ease = "280ms cubic-bezier(0.22, 0.61, 0.36, 1)";
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 900,
+                                      opacity: shown ? 1 : 0, transition: `opacity ${ease}` }} />
+      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 440, maxWidth: "100vw", background: "#1f1f1f",
+                    borderLeft: "0.5px solid #454545", zIndex: 901, display: "flex", flexDirection: "column",
+                    boxShadow: "-12px 0 32px rgba(0,0,0,0.4)",
+                    transform: shown ? "translateX(0)" : "translateX(100%)", transition: `transform ${ease}` }}>
+        <div style={{ padding: "18px 22px", borderBottom: "0.5px solid #383838", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <div style={{ fontSize: 16, color: "#fff", fontWeight: 600 }}>{title}</div>
+            {subtitle && <div style={{ fontSize: 11, color: "#8a8a8a", marginTop: 3 }}>{subtitle}</div>}
+          </div>
+          <span onClick={onClose} style={{ fontSize: 22, color: "#8a8a8a", cursor: "pointer", lineHeight: 1 }}>×</span>
+        </div>
+        <div style={{ padding: 22, overflowY: "auto", flex: 1 }}>{children}</div>
+      </div>
+    </>
+  );
+}
+
 export const ps = {
   card:      { background: "#262626", border: "0.5px solid #454545", borderRadius: 10, padding: 18 },
   topRow:    { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" },
@@ -61,6 +109,8 @@ export const ps = {
   ghostBtn:  { fontSize: 12, padding: "7px 14px", borderRadius: 6, background: "transparent", color: "#a5a5a5", border: "0.5px solid #555", cursor: "pointer" },
   label:     { display: "block", fontSize: 11, color: "#8a8a8a", marginBottom: 5 },
   input:     { width: "100%", boxSizing: "border-box", fontSize: 13, padding: "8px 11px", borderRadius: 6, background: "#202020", border: "0.5px solid #454545", color: "#eee", outline: "none", colorScheme: "dark" },
+  stack:     { display: "grid", gridTemplateColumns: "1fr", gap: 14 },
+  pair:      { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 },
   formGrid:  { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 14 },
   error:     { fontSize: 12, color: "#f87171", background: "rgba(239,68,68,0.08)", border: "0.5px solid rgba(239,68,68,0.3)", borderRadius: 6, padding: "8px 10px", marginTop: 12 },
   success:   { fontSize: 12, color: "#4ade80", background: "rgba(34,197,94,0.08)", border: "0.5px solid rgba(34,197,94,0.3)", borderRadius: 6, padding: "8px 10px", marginBottom: 14 },

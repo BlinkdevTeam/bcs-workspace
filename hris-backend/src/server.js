@@ -56,6 +56,14 @@ app.use("/api/leave-types", leaveTypesRoutes);
 const leaveBalancesRoutes = require("./routes/leaveBalances");
 app.use("/api/leave-balances", leaveBalancesRoutes);
 
+// ── TIME RECORDS (time-in / time-out) AND OT / UT REVIEW ─────────
+const attendanceRoutes = require("./routes/attendance");
+app.use("/api/attendance", attendanceRoutes);
+const overtimeRoutes = require("./routes/overtime");
+app.use("/api/overtime", overtimeRoutes);
+const leaveRequestsRoutes = require("./routes/leaveRequests");
+app.use("/api/leave-requests", leaveRequestsRoutes);
+
 // ── HEALTH CHECK (Optional but useful) ─────────────────────
 app.get("/", (req, res) => {
   res.json({

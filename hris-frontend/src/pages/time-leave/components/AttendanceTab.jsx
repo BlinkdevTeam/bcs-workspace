@@ -1,397 +1,192 @@
-import { useState, useMemo } from "react";
-import TimeCorrectionModal from "./TimeCorrectionModal";
+import React, { useState, useEffect, useCallback } from "react";
+import api from "../leaveApi";
 
-import {
-  EMPLOYEES,
-  DEPTS,
-  ATTENDANCE_STYLE,
-  breakFlags,
-  breakMinutes,
-  breakDurLabel,
-  Avatar,
-  BREAK_WINDOW_START,
-} from "../../../data/compData";
+const FONT = { fontFamily: "system-ui,sans-serif" };
+const MONO = { fontFamily: "monospace" };
+const iso = (d) => d.toLocaleDateString("en-CA");
+const daysAgo = (n) => iso(new Date(Date.now() - n * 86400000));
+const prettyDate = (s) => new Date(s + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+const hrs = (v) => (v === null || v === undefined ? "—" : `${Math.round(v * 100) / 100}h`);
+const field = { ...FONT, backgroundColor: "#111", border: "1px solid #2a2a2a", color: "#fff" };
 
-export default function AttendanceTab({ attendance, onCorrect }) {
-  const [search, setSearch] = useState("");
-  const [deptFilter, setDeptFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [breakFilter, setBreakFilter] = useState("All"); // "All" | "Flagged"
-  const [correcting, setCorrecting] = useState(null);
+function Drawer({ record, employees, onClose, onSaved }) {
+  const editing = !!record;
+  const [form, setForm] = useState({
+    employee_id: record?.employee_id || "", date: record?.date || iso(new Date()),
+    time_in: record?.time_in || "", time_out: record?.time_out || "", remarks: record?.remarks || "", reason: "",
+  });
+  const [err, setErr] = useState("");
+  const [saving, setSaving] = useState(false);
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const filtered = useMemo(() => {
-    return EMPLOYEES.filter((emp) => {
-      const q = search.toLowerCase();
-      const a = attendance.find((a) => a.empId === emp.id);
-      const flags = breakFlags(a?.breakOut, a?.breakIn);
-      return (
-        (!q ||
-          emp.name.toLowerCase().includes(q) ||
-          emp.role.toLowerCase().includes(q)) &&
-        (deptFilter === "All" || emp.dept === deptFilter) &&
-        (statusFilter === "All" || a?.status === statusFilter) &&
-        (breakFilter === "All" || flags.length > 0)
-      );
-    });
-  }, [search, deptFilter, statusFilter, breakFilter, attendance]);
+  async function save() {
+    setSaving(true); setErr("");
+    try {
+      if (editing) await api.patch(`/api/attendance/${record.id}`, { time_in: form.time_in, time_out: form.time_out, remarks: form.remarks, reason: form.reason });
+      else await api.post("/api/attendance", form);
+      onSaved();
+    } catch (e) {
+      setErr(e.response?.data?.message || "Could not save.");
+    } finally { setSaving(false); }
+  }
 
-  const flaggedCount = attendance.filter(
-    (a) => breakFlags(a.breakOut, a.breakIn).length > 0,
-  ).length;
-
+  const Label = ({ children }) => <label className="block text-xs text-gray-500 mb-1.5 mt-4" style={FONT}>{children}</label>;
   return (
     <>
-      <div className="space-y-5">
-        {/* Break flags banner */}
-        {flaggedCount > 0 && (
-          <div
-            className="rounded-lg px-5 py-3 flex items-center justify-between"
-            style={{ backgroundColor: "#1a0f0a", border: "1px solid #3a2010" }}
-          >
-            <div className="flex items-center gap-3">
-              <span style={{ color: "#f0c85a" }}>⚠</span>
-              <p
-                className="text-sm"
-                style={{ fontFamily: "system-ui,sans-serif", color: "#f0c85a" }}
-              >
-                {flaggedCount} employee{flaggedCount > 1 ? "s" : ""} with break
-                violations pending review
-              </p>
-            </div>
-            <button
-              onClick={() =>
-                setBreakFilter((f) => (f === "Flagged" ? "All" : "Flagged"))
-              }
-              className="text-xs px-3 py-1.5 rounded hover:opacity-80 transition-all"
-              style={{
-                fontFamily: "system-ui,sans-serif",
-                backgroundColor: breakFilter === "Flagged" ? "#f0c85a" : "#111",
-                color: breakFilter === "Flagged" ? "#000" : "#f0c85a",
-                border: "1px solid #3a2010",
-              }}
-            >
-              {breakFilter === "Flagged" ? "Show All" : "Show Flagged"}
-            </button>
-          </div>
-        )}
-
-        {/* Filters */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-xs">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
-              🔍
-            </span>
-            <input
-              className="w-full pl-9 pr-4 py-2 rounded text-sm text-white placeholder-gray-600 outline-none"
-              style={{
-                fontFamily: "system-ui,sans-serif",
-                backgroundColor: "#111",
-                border: "1px solid #2a2a2a",
-              }}
-              placeholder="Search employee…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <select
-            className="px-3 py-2 rounded text-sm text-gray-300 outline-none"
-            style={{
-              fontFamily: "system-ui,sans-serif",
-              backgroundColor: "#111",
-              border: "1px solid #2a2a2a",
-            }}
-            value={deptFilter}
-            onChange={(e) => setDeptFilter(e.target.value)}
-          >
-            {DEPTS.map((d) => (
-              <option key={d}>{d === "All" ? "All Departments" : d}</option>
-            ))}
-          </select>
-          <select
-            className="px-3 py-2 rounded text-sm text-gray-300 outline-none"
-            style={{
-              fontFamily: "system-ui,sans-serif",
-              backgroundColor: "#111",
-              border: "1px solid #2a2a2a",
-            }}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            {["All", "Present", "Remote", "Late", "Absent", "On Leave"].map(
-              (s) => (
-                <option key={s}>{s === "All" ? "All Statuses" : s}</option>
-              ),
-            )}
-          </select>
-          <div className="flex-1" />
-          <span
-            className="text-gray-600 text-sm"
-            style={{ fontFamily: "monospace" }}
-          >
-            {filtered.length} of {EMPLOYEES.length}
-          </span>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 40 }} />
+      <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: 440, background: "#0d0d0d", borderLeft: "1px solid #1e1e1e", zIndex: 50, padding: 24, overflowY: "auto" }}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg text-white" style={FONT}>{editing ? "Correct attendance" : "Add attendance record"}</h2>
+          <button onClick={onClose} className="text-gray-500 text-xl">×</button>
         </div>
 
-        {/* Table */}
-        <div
-          className="rounded-lg overflow-x-auto"
-          style={{ border: "1px solid #1e1e1e" }}
-        >
-          <table className="w-full text-sm">
+        <Label>Employee</Label>
+        <select value={form.employee_id} onChange={set("employee_id")} disabled={editing} className="w-full rounded-lg px-3 py-2 text-sm" style={field}>
+          <option value="">Choose employee…</option>
+          {employees.map((e) => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
+        </select>
+
+        <Label>Date</Label>
+        <input type="date" value={form.date} max={iso(new Date())} onChange={set("date")} disabled={editing}
+          className="w-full rounded-lg px-3 py-2 text-sm" style={{ ...field, colorScheme: "dark" }} />
+
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label>Time in</Label>
+            <input type="time" value={form.time_in} onChange={set("time_in")} className="w-full rounded-lg px-3 py-2 text-sm" style={{ ...field, colorScheme: "dark" }} /></div>
+          <div><Label>Time out</Label>
+            <input type="time" value={form.time_out} onChange={set("time_out")} className="w-full rounded-lg px-3 py-2 text-sm" style={{ ...field, colorScheme: "dark" }} /></div>
+        </div>
+
+        <Label>Remarks (optional)</Label>
+        <input value={form.remarks} onChange={set("remarks")} maxLength={255} className="w-full rounded-lg px-3 py-2 text-sm" style={field} />
+
+        {editing && (
+          <>
+            <Label>Reason for the correction</Label>
+            <input value={form.reason} onChange={set("reason")} maxLength={255} placeholder="e.g. Forgot to time out"
+              className="w-full rounded-lg px-3 py-2 text-sm" style={field} />
+            {record?.corrected_by && (
+              <p className="text-xs text-gray-600 mt-3" style={FONT}>Last corrected by {record.corrected_by}: “{record.correction_reason}”</p>
+            )}
+          </>
+        )}
+
+        {err && <p className="text-sm mt-4" style={{ ...FONT, color: "#f05a5a" }}>{err}</p>}
+        <button onClick={save} disabled={saving} className="w-full mt-6 rounded-lg py-2.5 text-sm"
+          style={{ ...FONT, backgroundColor: "#fff", color: "#000", opacity: saving ? 0.6 : 1 }}>
+          {saving ? "Saving…" : editing ? "Save changes" : "Add record"}
+        </button>
+      </div>
+    </>
+  );
+}
+
+export default function AttendanceTab() {
+  const [from, setFrom] = useState(daysAgo(30));
+  const [to, setTo]     = useState(iso(new Date()));
+  const [empId, setEmpId] = useState("");
+  const [data, setData] = useState(null);
+  const [employees, setEmployees] = useState([]);
+  const [error, setError] = useState("");
+  const [drawer, setDrawer] = useState(null); // null | "new" | record
+
+  const load = useCallback(() => {
+    api.get("/api/attendance", { params: { from, to, employee_id: empId || undefined } })
+      .then((r) => { setData(r.data); setError(""); })
+      .catch((e) => setError(e.response?.data?.message
+        || (e.response?.status === 403 ? "You do not have permission to view attendance." : "Could not load attendance.")));
+  }, [from, to, empId]);
+  useEffect(load, [load]);
+
+  useEffect(() => {
+    api.get("/employees").then((r) => {
+      const list = (Array.isArray(r.data) ? r.data : []).filter((e) => e.is_active !== false && !e.deleted_at);
+      setEmployees(list.sort((a, b) => `${a.first_name}`.localeCompare(`${b.first_name}`)));
+    }).catch(() => {});
+  }, []);
+
+  async function remove(r) {
+    if (!window.confirm(`Delete ${r.name}'s time record for ${prettyDate(r.date)}?`)) return;
+    try { await api.delete(`/api/attendance/${r.id}`); load(); }
+    catch (e) { setError(e.response?.data?.message || "Could not delete."); }
+  }
+
+  const sel = { ...field, color: "#ccc", colorScheme: "dark" };
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="text-sm rounded-lg px-3 py-2" style={sel} />
+        <span className="text-gray-600 text-sm">to</span>
+        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="text-sm rounded-lg px-3 py-2" style={sel} />
+        <select value={empId} onChange={(e) => setEmpId(e.target.value)} className="text-sm rounded-lg px-3 py-2" style={sel}>
+          <option value="">All employees</option>
+          {employees.map((e) => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
+        </select>
+      </div>
+
+      {data && (
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          {[["Records", data.records.length, "#fff"],
+            ["Present", data.records.filter((r) => r.status === "present").length, "#5af07a"],
+            ["Missing time-out", data.records.filter((r) => r.status === "incomplete").length, "#f0c85a"]].map(([l, v, c]) => (
+            <div key={l} className="rounded-xl px-4 py-3" style={{ backgroundColor: "#0d0d0d", border: "1px solid #1e1e1e" }}>
+              <p className="text-gray-600 text-xs mb-1" style={FONT}>{l}</p>
+              <p className="text-2xl" style={{ ...MONO, color: c }}>{v}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {error && <p className="text-sm mb-3" style={{ ...FONT, color: "#f05a5a" }}>{error}</p>}
+      {!data && !error && <p className="text-sm text-gray-600" style={FONT}>Loading…</p>}
+
+      {data && (
+        <div className="rounded-xl overflow-x-auto" style={{ border: "1px solid #1e1e1e" }}>
+          <table className="w-full text-sm" style={{ ...FONT, borderCollapse: "collapse" }}>
             <thead>
-              <tr
-                style={{
-                  backgroundColor: "#0a0a0a",
-                  borderBottom: "1px solid #1e1e1e",
-                }}
-              >
-                {[
-                  "Employee",
-                  "Dept",
-                  "Status",
-                  "Time In",
-                  "Break Out",
-                  "Break In",
-                  "Break Dur.",
-                  "Time Out",
-                  "Net Hours",
-                  "",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-3 py-3 text-left font-normal text-gray-600 whitespace-nowrap"
-                    style={{
-                      fontFamily: "system-ui,sans-serif",
-                      fontSize: 10,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.07em",
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
+              <tr style={{ backgroundColor: "#0d0d0d", color: "#666" }} className="text-xs text-left">
+                {["Employee", "Date", "Time in", "Time out", "Worked", "Status", "Remarks", ""].map((h) => <th key={h} className="px-3 py-2.5 font-normal">{h}</th>)}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((emp, i) => {
-                const a = attendance.find((a) => a.empId === emp.id);
-                const st =
-                  ATTENDANCE_STYLE[a?.status] || ATTENDANCE_STYLE.Absent;
-                const flags = breakFlags(a?.breakOut, a?.breakIn);
-                const dur = breakMinutes(a?.breakOut, a?.breakIn);
-                const hasFlag = flags.length > 0;
-
-                return (
-                  <tr
-                    key={emp.id}
-                    className="group"
-                    style={{
-                      borderBottom:
-                        i < filtered.length - 1 ? "1px solid #141414" : "none",
-                      backgroundColor: hasFlag ? "#120d08" : "#0d0d0d",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.backgroundColor = hasFlag
-                        ? "#1a1208"
-                        : "#111")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.backgroundColor = hasFlag
-                        ? "#120d08"
-                        : "#0d0d0d")
-                    }
-                  >
-                    {/* Employee */}
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-2">
-                        <Avatar emp={emp} size={28} />
-                        <div>
-                          <p
-                            className="text-white text-sm"
-                            style={{ fontFamily: "system-ui,sans-serif" }}
-                          >
-                            {emp.name}
-                          </p>
-                          <p
-                            className="text-gray-600 text-xs"
-                            style={{ fontFamily: "system-ui,sans-serif" }}
-                          >
-                            {emp.role}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Dept */}
-                    <td
-                      className="px-3 py-3 text-gray-500 text-xs"
-                      style={{ fontFamily: "system-ui,sans-serif" }}
-                    >
-                      {emp.dept}
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-1">
-                        <div
-                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: st.dot }}
-                        />
-                        <span
-                          className="text-xs px-1.5 py-0.5 rounded-full whitespace-nowrap"
-                          style={{
-                            fontFamily: "system-ui,sans-serif",
-                            backgroundColor: st.bg,
-                            color: st.color,
-                          }}
-                        >
-                          {a?.status || "—"}
-                        </span>
-                        {a?.correctedAt && (
-                          <span
-                            className="text-gray-600 text-xs"
-                            title="Corrected"
-                          >
-                            ✎
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Time In */}
-                    <td
-                      className="px-3 py-3 text-gray-300 text-xs whitespace-nowrap"
-                      style={{ fontFamily: "monospace" }}
-                    >
-                      {a?.timeIn || "—"}
-                    </td>
-
-                    {/* Break Out */}
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-1">
-                        <span
-                          className="text-xs"
-                          style={{
-                            fontFamily: "monospace",
-                            color: flags.includes("early") ? "#f0c85a" : "#888",
-                          }}
-                        >
-                          {a?.breakOut || "—"}
-                        </span>
-                        {flags.includes("early") && (
-                          <span
-                            title="Before 12PM"
-                            style={{ fontSize: 10, color: "#f0c85a" }}
-                          >
-                            ⚠
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Break In */}
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-1">
-                        <span
-                          className="text-xs"
-                          style={{
-                            fontFamily: "monospace",
-                            color: flags.includes("exceeded")
-                              ? "#f05a5a"
-                              : "#888",
-                          }}
-                        >
-                          {a?.breakIn || "—"}
-                        </span>
-                        {flags.includes("exceeded") && (
-                          <span
-                            title="Exceeded 1hr"
-                            style={{ fontSize: 10, color: "#f05a5a" }}
-                          >
-                            ⚠
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Break Duration */}
-                    <td className="px-3 py-3">
-                      {dur !== null ? (
-                        <span
-                          className="text-xs px-1.5 py-0.5 rounded whitespace-nowrap"
-                          style={{
-                            fontFamily: "monospace",
-                            backgroundColor:
-                              dur > 60
-                                ? "#1f0f0f"
-                                : dur === 60
-                                  ? "#0f1f0f"
-                                  : "#111",
-                            color:
-                              dur > 60
-                                ? "#f05a5a"
-                                : dur === 60
-                                  ? "#5af07a"
-                                  : "#aaa",
-                          }}
-                        >
-                          {breakDurLabel(a?.breakOut, a?.breakIn)}
-                        </span>
-                      ) : (
-                        <span className="text-gray-700 text-xs">—</span>
-                      )}
-                    </td>
-
-                    {/* Time Out */}
-                    <td
-                      className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap"
-                      style={{ fontFamily: "monospace" }}
-                    >
-                      {a?.timeOut || "—"}
-                    </td>
-
-                    {/* Net Hours */}
-                    <td
-                      className="px-3 py-3 text-gray-500 text-xs whitespace-nowrap"
-                      style={{ fontFamily: "monospace" }}
-                    >
-                      {a?.hours ? `${a.hours}h` : "—"}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-3 py-3">
-                      <button
-                        onClick={() => setCorrecting({ emp, record: a })}
-                        className="text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
-                        style={{
-                          fontFamily: "system-ui,sans-serif",
-                          backgroundColor: "#111",
-                          color: "#aaa",
-                          border: "1px solid #2a2a2a",
-                        }}
-                      >
-                        ✎ Correct
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {data.records.length === 0 && (
+                <tr><td colSpan={8} className="px-3 py-8 text-center text-gray-600">No attendance records in this range. Records will appear here once the time-in app or biometrics is connected.</td></tr>
+              )}
+              {data.records.map((r) => (
+                <tr key={r.id} style={{ borderTop: "1px solid #1a1a1a" }}>
+                  <td className="px-3 py-2.5 text-white whitespace-nowrap">{r.name}<div className="text-gray-600 text-xs">{r.department}</div></td>
+                  <td className="px-3 py-2.5 text-gray-300 whitespace-nowrap">{prettyDate(r.date)}</td>
+                  <td className="px-3 py-2.5 text-gray-300" style={MONO}>{r.time_in || "—"}</td>
+                  <td className="px-3 py-2.5" style={{ ...MONO, color: r.time_out ? "#ccc" : "#f0c85a" }}>{r.time_out || "missing"}</td>
+                  <td className="px-3 py-2.5 text-gray-300" style={MONO}>{hrs(r.worked_hours)}</td>
+                  <td className="px-3 py-2.5">
+                    <span className="text-xs px-2 py-0.5 rounded-full" style={r.status === "present"
+                      ? { color: "#5af07a", backgroundColor: "#0a1a0a", border: "1px solid #1e3a1e" }
+                      : { color: "#f0c85a", backgroundColor: "#1f1a0f", border: "1px solid #3a3010" }}>
+                      {r.status === "present" ? "Present" : "Incomplete"}
+                    </span>
+                    {r.corrected_by && (
+                      <span className="text-xs ml-2 px-2 py-0.5 rounded-full text-gray-400" style={{ border: "1px solid #2a2a2a" }}
+                        title={`Corrected by ${r.corrected_by}: ${r.correction_reason || ""}`}>Corrected</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5 text-gray-500">{r.remarks || ""}</td>
+                  <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                    <button onClick={() => setDrawer(r)} className="text-xs text-gray-400 mr-3">Edit</button>
+                    <button onClick={() => remove(r)} className="text-xs" style={{ color: "#f05a5a" }}>Delete</button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-      </div>
-
-      {correcting && (
-        <TimeCorrectionModal
-          emp={correcting.emp}
-          record={correcting.record}
-          onClose={() => setCorrecting(false)}
-          onSave={(corrected) => {
-            onCorrect(correcting.emp.id, corrected);
-            setCorrecting(null);
-          }}
-        />
       )}
-    </>
+      <p className="text-xs text-gray-700 mt-3" style={FONT}>Worked = time-out minus time-in, less a {data?.break_hours ?? 1}h break on days longer than 5 hours. Records come from the time-in app / biometrics. Admins can only correct an existing record, with a reason. Late and absent are not tracked yet.</p>
+
+      {drawer && (
+        <Drawer record={drawer} employees={employees}
+          onClose={() => setDrawer(null)} onSaved={() => { setDrawer(null); load(); }} />
+      )}
+    </div>
   );
 }
