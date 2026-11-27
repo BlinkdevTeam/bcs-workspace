@@ -352,4 +352,47 @@ async function cancelOvertime(req, res, next) {
   }
 }
 
-module.exports = { getLeave, createLeave, cancelLeave, getOvertime, createOvertime, cancelOvertime };
+// ── Attendance (my own time-in / time-out) ───────────────────────────────────
+// Same working-time rule HRIS uses: one unpaid hour is taken off days longer than 5 hours.
+const BREAK_HOURS = 1, BREAK_AFTER_HOURS = 5;
+const hm = (t) => { const [h, m] = String(t).split(":"); return Number(h) * 60 + Number(m); };
+function workedHours(tin, tout) {
+  if (!tin || !tout) return null;
+  const span = (hm(tout) - hm(tin)) / 60;
+  if (span <= 0) return null;
+  return Math.round((span - (span > BREAK_AFTER_HOURS ? BREAK_HOURS : 0)) * 100) / 100;
+}
+
+// GET /api/portal/attendance?from=YYYY-MM-DD&to=YYYY-MM-DD   (defaults to the last 31 days)
+async function getAttendance(req, res, next) {
+  try {
+    const today = new Date().toLocaleDateString("en-CA");
+    const monthAgo = new Date(Date.now() - 30 * 86400000).toLocaleDateString("en-CA");
+    const okDay = (s) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
+    const from = okDay(req.query.from) ? req.query.from : monthAgo;
+    const to   = okDay(req.query.to) ? req.query.to : today;
+    const rows = await q(
+      `SELECT id, date::text AS date, to_char(time_in,'HH24:MI') AS time_in, to_char(time_out,'HH24:MI') AS time_out, remarks
+         FROM attendance_records WHERE employee_id = :me AND date BETWEEN :from AND :to ORDER BY date DESC`,
+      { me: req.user.sub, from, to }
+    );
+    // every scan of those days, kept by the time clock (the table may not exist before the first scan)
+    const scanRows = await q(
+      `SELECT work_date::text AS date, to_char(punched_at AT TIME ZONE :tz, 'HH24:MI') AS time
+         FROM time_punches WHERE employee_id = :me AND work_date BETWEEN :from AND :to ORDER BY punched_at`,
+      { me: req.user.sub, from, to, tz: process.env.TIMECLOCK_TZ || "Asia/Manila" }
+    ).catch(() => []);
+    const scansByDay = {};
+    for (const s of scanRows) (scansByDay[s.date] ||= []).push(s.time);
+
+    const records = rows.map((r) => ({
+      id: r.id, date: r.date, time_in: r.time_in, time_out: r.time_out, remarks: r.remarks, scans: scansByDay[r.date] || [],
+      worked_hours: workedHours(r.time_in, r.time_out), status: r.time_out ? "present" : "incomplete",
+    }));
+    return res.status(200).json({ from, to, today, records });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getLeave, createLeave, cancelLeave, getOvertime, createOvertime, cancelOvertime, getAttendance };

@@ -3,6 +3,7 @@
 const { QueryTypes } = require("sequelize");
 const { sequelize } = require("../config/database");
 const W = require("../config/workHours");
+const { ensureTimePunches } = require("../config/timePunches");
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUuid = (v) => typeof v === "string" && UUID_RE.test(v);
@@ -28,17 +29,13 @@ function workedHours(timeIn, timeOut) {
 exports.workedHours = workedHours;
 
 // Corrections are audited: who changed a record, when, and why.
-let colsReady = null;
-const ensureCols = () => (colsReady ||= sequelize.query(
-  `ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS corrected_by VARCHAR(255);
-   ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS corrected_at TIMESTAMPTZ;
-   ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS correction_reason VARCHAR(255)`
-).catch((e) => { colsReady = null; throw e; }));
+const ensureCols = () => ensureTimePunches();
 
 const SELECT = `
   SELECT a.id, a.employee_id, e.first_name, e.last_name, e.employee_code, d.name AS department,
          a.date::text AS date, to_char(a.time_in, 'HH24:MI') AS time_in, to_char(a.time_out, 'HH24:MI') AS time_out,
-         a.status, a.remarks, a.corrected_by, a.corrected_at, a.correction_reason
+         a.status, a.remarks, a.corrected_by, a.corrected_at, a.correction_reason,
+         (SELECT COUNT(*)::int FROM time_punches p WHERE p.employee_id = a.employee_id AND p.work_date = a.date) AS scans
     FROM attendance_records a
     JOIN employees e ON e.id = a.employee_id
     LEFT JOIN departments d ON d.id = e.department_id`;
@@ -48,7 +45,7 @@ const shape = (r) => ({
   employee_code: r.employee_code, department: r.department || "No department",
   date: r.date, time_in: r.time_in, time_out: r.time_out,
   worked_hours: workedHours(r.time_in, r.time_out), status: r.time_out ? "present" : "incomplete", remarks: r.remarks,
-  corrected_by: r.corrected_by, corrected_at: r.corrected_at, correction_reason: r.correction_reason,
+  scans: r.scans || 0, corrected_by: r.corrected_by, corrected_at: r.corrected_at, correction_reason: r.correction_reason,
 });
 
 // GET /api/attendance?from=YYYY-MM-DD&to=YYYY-MM-DD&employee_id=
@@ -165,5 +162,22 @@ exports.remove = async (req, res) => {
   } catch (err) {
     console.error("attendance.remove", err);
     res.status(500).json({ message: "Could not delete the time record." });
+  }
+};
+
+// GET /api/attendance/punches?employee_id=&date=   every raw scan for one employee on one day
+exports.punches = async (req, res) => {
+  try {
+    await ensureCols();
+    const { employee_id: emp, date } = req.query;
+    if (!isUuid(emp) || !isRealDate(date)) return res.status(400).json({ message: "Choose an employee and a date." });
+    const rows = await q(
+      `SELECT to_char(punched_at AT TIME ZONE :tz, 'HH24:MI:SS') AS time, source
+         FROM time_punches WHERE employee_id = :e AND work_date = :d ORDER BY punched_at`,
+      { tz: process.env.TIMECLOCK_TZ || "Asia/Manila", e: emp, d: date });
+    res.json({ scans: rows });
+  } catch (err) {
+    console.error("attendance.punches", err);
+    res.status(500).json({ message: "Could not load the scans." });
   }
 };

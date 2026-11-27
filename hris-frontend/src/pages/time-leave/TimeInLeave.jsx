@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import StatCard from "./components/StatCard";
 import OverviewTab from "./components/OverviewTab";
 import AttendanceTab from "./components/AttendanceTab";
 import LeaveRequestsTab from "./components/LeaveRequestsTab";
@@ -8,51 +7,14 @@ import LeaveBalancesTab from "./components/LeaveBalancesTab";
 import LeaveTypesTab from "./components/LeaveTypesTab";
 import OTUTTab from "./components/OTUTTab";
 import OffsetTab from "./components/OffsetTab";
-import {
-  EMPLOYEES, ATTENDANCE_TODAY, LEAVE_REQUESTS_SEED, LEAVE_BALANCES, OT_UT_RECORDS, ATTENDANCE_STYLE, OFFSET_BANK_SEED, OFFSET_REQUESTS_SEED, CURRENT_CUTOFF_END 
-} from "../../data/compData";
+import { OFFSET_BANK_SEED, OFFSET_REQUESTS_SEED } from "../../data/compData";
 
-
-// ── DESIGN TOKENS ─────────────────────────────────────────────────────────────
-
-function fmt(n){ return n.toLocaleString("en-US",{minimumFractionDigits:1,maximumFractionDigits:1}); }
-
-// ── STAT CARD ─────────────────────────────────────────────────────────────────
-<StatCard
-    label="Total Annual Payroll"
-    // value={fmt(totalPayroll)}
-    sub="All active employees"
-  />
 
 // ── TIME & LEAVE PAGE ─────────────────────────────────────────────────────────
 export default function TimeAndLeave() {
   const [activeTab,     setActiveTab]     = useState("overview");
-  const [leaveRequests, setLeaveRequests] = useState(LEAVE_REQUESTS_SEED);
-  const [otRecords,     setOtRecords]     = useState(OT_UT_RECORDS);
-  const [attendance,    setAttendance]    = useState(ATTENDANCE_TODAY);
   const [offsetBank,    setOffsetBank]    = useState(OFFSET_BANK_SEED);
   const [offsetRequests,setOffsetRequests]= useState(OFFSET_REQUESTS_SEED);
-
-  function approveLeave(id)  { setLeaveRequests(p=>p.map(r=>r.id===id?{...r,status:"Approved"}:r)); }
-  function rejectLeave(id)   { setLeaveRequests(p=>p.map(r=>r.id===id?{...r,status:"Rejected"}:r)); }
-  function approveOT(idx)    { setOtRecords(p=>p.map((r,i)=>i===idx?{...r,status:"Approved"}:r)); }
-
-  function correctAttendance(empId, corrected) {
-    setAttendance(p=>p.map(a=>a.empId===empId
-      ? { ...a,
-          status:    corrected.status,
-          timeIn:    corrected.timeIn,
-          timeOut:   corrected.timeOut,
-          breakOut:  corrected.breakOut,
-          breakIn:   corrected.breakIn,
-          hours:     corrected.hours,
-          breakFlags:corrected.breakFlags,
-          correctedAt:  corrected.correctedAt,
-          correctedBy:  corrected.correctedBy,
-          correctionReason: corrected.reason }
-      : a
-    ));
-  }
 
   const TABS = [
     { key:"overview",   label:"Overview"      },
@@ -72,6 +34,7 @@ export default function TimeAndLeave() {
   }, []);
   useEffect(refreshPending, [refreshPending]);
   const pendingOffset = offsetRequests.filter(r=>r.status==="Pending").length;
+  const todayLabel = new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"});
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col" style={{backgroundColor:"#000"}}>
@@ -84,10 +47,7 @@ export default function TimeAndLeave() {
           <div className="flex items-center gap-3">
             <div className="rounded-lg px-4 py-2 flex items-center gap-2" style={{backgroundColor:"#0a1a0a",border:"1px solid #1e3a1e"}}>
               <div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor:"#5af07a"}}/>
-              <span className="text-xs text-gray-400" style={{fontFamily:"system-ui,sans-serif"}}>Today · Mon, Mar 2, 2026</span>
-            </div>
-            <div className="rounded-lg px-4 py-2" style={{backgroundColor:"#0a1020",border:"1px solid #1a2a3a"}}>
-              <span className="text-xs text-gray-500" style={{fontFamily:"system-ui,sans-serif"}}>Cutoff ends <strong className="text-white">{CURRENT_CUTOFF_END}</strong></span>
+              <span className="text-xs text-gray-400" style={{fontFamily:"system-ui,sans-serif"}}>Today · {todayLabel}</span>
             </div>
             {pendingLeave>0&&(
               <div className="rounded-lg px-4 py-2" style={{backgroundColor:"#1f1a0f",border:"1px solid #3a3010"}}>
@@ -111,19 +71,7 @@ export default function TimeAndLeave() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-8 py-6">
-        {activeTab === "overview" && (
-          <OverviewTab
-            attendance={attendance}
-            leaveRequests={leaveRequests}
-            otRecords={otRecords}
-            employees={EMPLOYEES}
-            leaveBalances={LEAVE_BALANCES}
-            attendanceStyle={ATTENDANCE_STYLE}
-            fmt={fmt}
-            onApprove={approveLeave}
-            onReject={rejectLeave}
-          />
-        )}
+        {activeTab === "overview" && <OverviewTab onNavigate={setActiveTab}/>}
         {activeTab==="attendance" && <AttendanceTab/>}
         {activeTab==="leave"      && <LeaveRequestsTab onChanged={refreshPending}/>}
         {activeTab==="balances"   && <LeaveBalancesTab/>}

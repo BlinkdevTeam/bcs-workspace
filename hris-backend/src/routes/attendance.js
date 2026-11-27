@@ -8,6 +8,7 @@ const c = require("../controllers/attendanceController");
 const router = Router();
 router.use(protect);
 router.get("/",       requirePermission("attendance.view_all"), c.list);
+router.get("/punches", requirePermission("attendance.view_all"), c.punches);
 router.post("/",      requirePermission("attendance.correct"),  c.create);
 router.patch("/:id",  requirePermission("attendance.correct"),  c.update);
 router.delete("/:id", requirePermission("attendance.correct"),  c.remove);

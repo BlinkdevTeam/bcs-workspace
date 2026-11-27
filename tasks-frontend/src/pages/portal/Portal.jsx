@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import LeaveTab from "./LeaveTab";
 import OvertimeTab from "./OvertimeTab";
+import AttendanceTab from "./AttendanceTab";
 import api from "../../services/api";
 import { selectUser } from "../../store/slices/authSlice";
 
@@ -12,7 +13,7 @@ export default function Portal() {
   const user     = useSelector(selectUser);
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const tab = ["leave", "overtime"].includes(params.get("tab")) ? params.get("tab") : "overview";
+  const tab = ["leave", "overtime", "attendance"].includes(params.get("tab")) ? params.get("tab") : "overview";
   const goTab = (t) => setParams(t === "overview" ? {} : { tab: t }, { replace: true });
   const [tasks, setTasks]   = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +36,6 @@ export default function Portal() {
   const done    = tasks.filter((t) => t.done);
 
   const soon = [
-    { title: "Attendance", text: "Your time-in / time-out records." },
     { title: "Payslips",   text: "View and download your payslips." },
     { title: "Documents",  text: "Your contracts and employee documents." },
   ];
@@ -59,7 +59,7 @@ export default function Portal() {
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: 4, margin: "22px 0 18px", borderBottom: "0.5px solid #383838" }}>
-        {[["overview", "Overview"], ["leave", "Leave"], ["overtime", "Overtime"]].map(([k, l]) => (
+        {[["overview", "Overview"], ["leave", "Leave"], ["overtime", "Overtime"], ["attendance", "Attendance"]].map(([k, l]) => (
           <div key={k} onClick={() => goTab(k)}
             style={{ padding: "9px 16px", fontSize: 13, cursor: "pointer", marginBottom: -1,
                      color: tab === k ? "#fff" : "#8a8a8a",
@@ -69,6 +69,7 @@ export default function Portal() {
 
       {tab === "leave" && <LeaveTab />}
       {tab === "overtime" && <OvertimeTab />}
+      {tab === "attendance" && <AttendanceTab />}
       {tab === "overview" && (<>
       {/* My work */}
       <div style={s.sectionTitle}>My work</div>

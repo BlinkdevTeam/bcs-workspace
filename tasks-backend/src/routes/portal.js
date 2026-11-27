@@ -17,4 +17,6 @@ router.get("/overtime",                c.getOvertime);
 router.post("/overtime",               c.createOvertime);
 router.delete("/overtime/:id",         c.cancelOvertime);
 
+router.get("/attendance",              c.getAttendance);
+
 module.exports = router;

@@ -64,6 +64,10 @@ app.use("/api/overtime", overtimeRoutes);
 const leaveRequestsRoutes = require("./routes/leaveRequests");
 app.use("/api/leave-requests", leaveRequestsRoutes);
 
+// ── TIME CLOCK (public test kiosk) ───────────────────────────────
+const timeclockRoutes = require("./routes/timeclock");
+app.use("/api/timeclock", timeclockRoutes);
+
 // ── HEALTH CHECK (Optional but useful) ─────────────────────
 app.get("/", (req, res) => {
   res.json({

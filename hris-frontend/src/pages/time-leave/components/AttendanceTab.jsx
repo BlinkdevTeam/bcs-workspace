@@ -88,6 +88,8 @@ export default function AttendanceTab() {
   const [data, setData] = useState(null);
   const [employees, setEmployees] = useState([]);
   const [error, setError] = useState("");
+  const [open, setOpen] = useState(null);     // record id whose scans are showing
+  const [scans, setScans] = useState({});       // record id -> list of scans
   const [drawer, setDrawer] = useState(null); // null | "new" | record
 
   const load = useCallback(() => {
@@ -104,6 +106,18 @@ export default function AttendanceTab() {
       setEmployees(list.sort((a, b) => `${a.first_name}`.localeCompare(`${b.first_name}`)));
     }).catch(() => {});
   }, []);
+
+  async function toggleScans(r) {
+    if (open === r.id) return setOpen(null);
+    setOpen(r.id);
+    if (scans[r.id]) return;
+    try {
+      const res = await api.get("/api/attendance/punches", { params: { employee_id: r.employee_id, date: r.date } });
+      setScans((s) => ({ ...s, [r.id]: res.data.scans }));
+    } catch {
+      setScans((s) => ({ ...s, [r.id]: [] }));
+    }
+  }
 
   async function remove(r) {
     if (!window.confirm(`Delete ${r.name}'s time record for ${prettyDate(r.date)}?`)) return;
@@ -145,20 +159,28 @@ export default function AttendanceTab() {
           <table className="w-full text-sm" style={{ ...FONT, borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ backgroundColor: "#0d0d0d", color: "#666" }} className="text-xs text-left">
-                {["Employee", "Date", "Time in", "Time out", "Worked", "Status", "Remarks", ""].map((h) => <th key={h} className="px-3 py-2.5 font-normal">{h}</th>)}
+                {["Employee", "Date", "Time in", "Time out", "Worked", "Scans", "Status", "Remarks", ""].map((h) => <th key={h} className="px-3 py-2.5 font-normal">{h}</th>)}
               </tr>
             </thead>
             <tbody>
               {data.records.length === 0 && (
-                <tr><td colSpan={8} className="px-3 py-8 text-center text-gray-600">No attendance records in this range. Records will appear here once the time-in app or biometrics is connected.</td></tr>
+                <tr><td colSpan={9} className="px-3 py-8 text-center text-gray-600">No attendance records in this range. Records will appear here once the time-in app or biometrics is connected.</td></tr>
               )}
               {data.records.map((r) => (
-                <tr key={r.id} style={{ borderTop: "1px solid #1a1a1a" }}>
+                <React.Fragment key={r.id}>
+                <tr style={{ borderTop: "1px solid #1a1a1a" }}>
                   <td className="px-3 py-2.5 text-white whitespace-nowrap">{r.name}<div className="text-gray-600 text-xs">{r.department}</div></td>
                   <td className="px-3 py-2.5 text-gray-300 whitespace-nowrap">{prettyDate(r.date)}</td>
                   <td className="px-3 py-2.5 text-gray-300" style={MONO}>{r.time_in || "—"}</td>
                   <td className="px-3 py-2.5" style={{ ...MONO, color: r.time_out ? "#ccc" : "#f0c85a" }}>{r.time_out || "missing"}</td>
                   <td className="px-3 py-2.5 text-gray-300" style={MONO}>{hrs(r.worked_hours)}</td>
+                  <td className="px-3 py-2.5">
+                    {r.scans > 0 ? (
+                      <button onClick={() => toggleScans(r)} className="text-xs text-gray-400 underline decoration-dotted" style={MONO}>
+                        {r.scans} {open === r.id ? "▾" : "▸"}
+                      </button>
+                    ) : <span className="text-xs text-gray-700">—</span>}
+                  </td>
                   <td className="px-3 py-2.5">
                     <span className="text-xs px-2 py-0.5 rounded-full" style={r.status === "present"
                       ? { color: "#5af07a", backgroundColor: "#0a1a0a", border: "1px solid #1e3a1e" }
@@ -176,12 +198,33 @@ export default function AttendanceTab() {
                     <button onClick={() => remove(r)} className="text-xs" style={{ color: "#f05a5a" }}>Delete</button>
                   </td>
                 </tr>
+                {open === r.id && (
+                  <tr style={{ backgroundColor: "#080808" }}>
+                    <td colSpan={9} className="px-6 py-3">
+                      <p className="text-xs text-gray-600 mb-2" style={FONT}>
+                        All scans on {prettyDate(r.date)}. The first is the time in and the last is the time out.
+                      </p>
+                      {!scans[r.id] ? <span className="text-xs text-gray-600">Loading…</span> : scans[r.id].length === 0 ? (
+                        <span className="text-xs text-gray-600">No scans recorded for this day.</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {scans[r.id].map((s, i) => (
+                            <span key={i} className="text-xs px-2 py-1 rounded-md text-gray-300" style={{ ...MONO, border: "1px solid #222" }}>
+                              {s.time.slice(0, 5)}<span className="text-gray-600">:{s.time.slice(6)}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
         </div>
       )}
-      <p className="text-xs text-gray-700 mt-3" style={FONT}>Worked = time-out minus time-in, less a {data?.break_hours ?? 1}h break on days longer than 5 hours. Records come from the time-in app / biometrics. Admins can only correct an existing record, with a reason. Late and absent are not tracked yet.</p>
+      <p className="text-xs text-gray-700 mt-3" style={FONT}>Worked = time-out minus time-in, less a {data?.break_hours ?? 1}h break on days longer than 5 hours. Every scan is kept. The first scan of the day is the time in and the last is the time out (at least 5 minutes later). Admins can correct a day, with a reason. Late and absent are not tracked yet.</p>
 
       {drawer && (
         <Drawer record={drawer} employees={employees}
